@@ -7,9 +7,7 @@ router.post('/salva', async (req, res) => {
   const { nome_dieta, giorni, id_visita = null } = req.body;
 
   try {
-    if (!id_visita) {
-      return res.status(400).json({ error: 'ID visita mancante' });
-    }
+    if (!id_visita) return res.status(400).json({ error: 'ID visita mancante' });
 
     const visita = await db.get(`SELECT id FROM visite WHERE id = ?`, [id_visita]);
     if (!visita) return res.status(400).json({ error: 'ID visita non valido' });
@@ -71,51 +69,6 @@ router.post('/salva', async (req, res) => {
   } catch (err) {
     console.error('❌ Errore nel salvataggio dieta:', err);
     res.status(500).json({ success: false, message: 'Errore nel salvataggio dieta' });
-  }
-});
-
-// 🔍 Recupera tutte le diete di un paziente
-router.get('/:id_paziente', async (req, res) => {
-  try {
-    const result = await db.all(`
-      SELECT 
-        d.id, d.nome, d.sub_index, d.data_creazione,
-        d.id_visita, v.data AS data_visita
-      FROM diete d
-      JOIN visite v ON d.id_visita = v.id
-      WHERE v.id_paziente = ?
-      ORDER BY v.data DESC, d.sub_index ASC
-    `, [req.params.id_paziente]);
-
-    res.json(result);
-  } catch (err) {
-    console.error('Errore nel recupero diete:', err);
-    res.status(500).json({ error: 'Errore nel recupero diete' });
-  }
-});
-
-// 🔍 Recupera una singola dieta per ID
-router.get('/dettaglio/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    const dieta = await db.get(`
-      SELECT 
-        d.id, d.nome, d.sub_index, d.data_creazione,
-        d.id_visita, v.data AS data_visita,
-        v.id_paziente, p.nome AS nome_paziente
-      FROM diete d
-      JOIN visite v ON d.id_visita = v.id
-      JOIN pazienti p ON v.id_paziente = p.id
-      WHERE d.id = ?
-    `, [id]);
-
-    if (!dieta) return res.status(404).json({ error: 'Dieta non trovata' });
-
-    res.json(dieta);
-  } catch (err) {
-    console.error('❌ Errore nel recupero dettaglio dieta:', err);
-    res.status(500).json({ error: 'Errore server' });
   }
 });
 
@@ -189,18 +142,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// 🔎 Recupera diete per una visita
-router.get('/per-visita/:id_visita', async (req, res) => {
-  try {
-    const diete = await db.all(`SELECT * FROM diete WHERE id_visita = ? ORDER BY sub_index`, [req.params.id_visita]);
-    res.json(diete);
-  } catch (err) {
-    console.error('Errore nel recupero diete per visita:', err);
-    res.status(500).json({ error: 'Errore nel recupero diete per visita' });
-  }
-});
-
-// ❌ Elimina una dieta e tutto ciò che contiene
+// ❌ Elimina una dieta e i dati collegati (ON DELETE CASCADE gestisce tutto)
 router.delete('/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -215,6 +157,66 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('❌ Errore eliminazione dieta:', err);
     res.status(500).json({ error: 'Errore durante l\'eliminazione della dieta' });
+  }
+});
+
+// 📄 Ottieni tutte le diete di un paziente
+router.get('/:id_paziente', async (req, res) => {
+  try {
+    const result = await db.all(`
+      SELECT 
+        d.id, d.nome, d.sub_index, d.data_creazione,
+        d.id_visita, v.data AS data_visita
+      FROM diete d
+      JOIN visite v ON d.id_visita = v.id
+      WHERE v.id_paziente = ?
+      ORDER BY v.data DESC, d.sub_index ASC
+    `, [req.params.id_paziente]);
+
+    res.json(result);
+  } catch (err) {
+    console.error('Errore nel recupero diete:', err);
+    res.status(500).json({ error: 'Errore nel recupero diete' });
+  }
+});
+
+// 🔍 Recupera una singola dieta con giorni, pasti e alimenti
+router.get('/dettaglio/:id', async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const dieta = await db.get(`SELECT * FROM diete WHERE id = ?`, [id]);
+    if (!dieta) return res.status(404).json({ error: 'Dieta non trovata' });
+
+    const giorni = await db.all(`SELECT * FROM giorni_dieta WHERE id_dieta = ? ORDER BY giorno_index`, [id]);
+
+    for (const giorno of giorni) {
+      const pasti = await db.all(`SELECT * FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
+      for (const pasto of pasti) {
+        const alimenti = await db.all(`SELECT * FROM alimenti_dieta WHERE id_pasto = ?`, [pasto.id]);
+        pasto.alimenti = alimenti;
+      }
+      giorno.pasti = pasti;
+    }
+
+    dieta.giorni = giorni;
+
+    res.json(dieta);
+
+  } catch (err) {
+    console.error('❌ Errore recupero dettaglio dieta:', err);
+    res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+// 🔍 Recupera diete per una visita
+router.get('/per-visita/:id_visita', async (req, res) => {
+  try {
+    const diete = await db.all(`SELECT * FROM diete WHERE id_visita = ? ORDER BY sub_index`, [req.params.id_visita]);
+    res.json(diete);
+  } catch (err) {
+    console.error('Errore nel recupero diete per visita:', err);
+    res.status(500).json({ error: 'Errore nel recupero diete per visita' });
   }
 });
 
