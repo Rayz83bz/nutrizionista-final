@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f9fafb;
+  color: #1f2937;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+a {
+  text-decoration: none;
+  transition: opacity 0.2s ease-in-out;
+}
+a:hover {
+  opacity: 0.85;
+}
+
+button {
+  transition: background-color 0.2s, transform 0.1s;
+}
+button:hover {
+  transform: scale(1.03);
+}
+
+input, select, textarea {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.4rem 0.6rem;
+  outline: none;
+  transition: border-color 0.2s;
+  font-size: 0.9rem;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #3b82f6;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.form-section {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+.form-sections-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+
+.btn {
+  background-color: #3b82f6;
+  color: white;
+  font-size: 0.85rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.btn:hover {
+  background-color: #2563eb;
+}
+
+
+svg {
+  color: inherit;
+}
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #374151;
+}
+
+/* Layout containers */
+.layout-container {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.sidebar-totali {
+  position: sticky;
+  top: 1rem;
+  background: #f3f4f6;
+  padding: 1.2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  min-width: 250px;
+  height: fit-content;
+}
+
+.sidebar-totali p {
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.sidebar-totali h2 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.chart-wrapper {
+  width: 180px;
+  height: 180px;
+  margin: 15px auto;
+}
+
+.suggerimenti {
+  font-size: 0.8rem;
+  margin-top: 12px;
+  color: #555;
+}
+
+.content-dieta {
+  flex-grow: 1;
+}
+
+.giorno-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+  background: white;
+}
+
+.pasto-header {
+  background-color: #f3f4f6;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.tabella-alimenti th, .tabella-alimenti td {
+  padding: 4px 6px;
+  font-size: 0.85rem;
+}
+
+.search-alimenti {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.aggiungi-btn {
+  background-color: #22c55e;
+  color: white;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+.aggiungi-btn:hover {
+  background-color: #16a34a;
+}
+
+.collapse-header {
+  background-color: #3b82f6;
+  color: white;
+  text-align: center;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.collapse-header:hover {
+  background-color: #2563eb;
+}
