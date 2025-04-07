@@ -181,66 +181,39 @@ router.get('/dettaglio/:id', async (req, res) => {
   const id = req.params.id;
 
   try {
-    const dieta = await db.get(`SELECT * FROM diete WHERE id = ?`, [id]);
-    if (!dieta) return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Dieta non trovata" } });
+    const dieta = await db.get(`
+      SELECT d.*, v.id_paziente
+      FROM diete d
+      JOIN visite v ON d.id_visita = v.id
+      WHERE d.id = ?
+    `, [id]);
 
-    const raw = await db.all(`
-      SELECT 
-        g.id AS giorno_id, g.giorno_index, g.note AS note_giorno,
-        p.id AS pasto_id, p.tipo_pasto, p.orario,
-        a.id AS alimento_id, a.alimento_id AS alimento_ref, a.quantita, a.note AS note_alimento
-      FROM giorni_dieta g
-      LEFT JOIN pasti_dieta p ON g.id = p.id_giorno
-      LEFT JOIN alimenti_dieta a ON p.id = a.id_pasto
-      WHERE g.id_dieta = ?
-      ORDER BY g.giorno_index, p.orario`, [id]);
+    if (!dieta) return res.status(404).json({ error: 'Dieta non trovata' });
 
-    const giorniMap = {};
+    const giorni = await db.all(`SELECT * FROM giorni_dieta WHERE id_dieta = ?`, [id]);
 
-    for (const row of raw) {
-      if (!giorniMap[row.giorno_id]) {
-        giorniMap[row.giorno_id] = {
-          numero_giorno: row.giorno_index,
-          note: row.note_giorno,
-          pasti: []
-        };
-      }
+    for (const g of giorni) {
+      g.pasti = await db.all(`SELECT * FROM pasti_dieta WHERE id_giorno = ?`, [g.id]);
 
-      if (row.pasto_id) {
-        let pasto = giorniMap[row.giorno_id].pasti.find(p => p.pasto_id === row.pasto_id);
-        if (!pasto) {
-          pasto = {
-            pasto_id: row.pasto_id,
-            nome_pasto: row.tipo_pasto,
-            orario: row.orario,
-            alimenti: []
-          };
-          giorniMap[row.giorno_id].pasti.push(pasto);
-        }
-
-        if (row.alimento_id) {
-          pasto.alimenti.push({
-            id: row.alimento_id,
-            alimento_id: row.alimento_ref,
-            grammi: row.quantita,
-            note: row.note_alimento
-          });
-        }
+      for (const p of g.pasti) {
+        p.alimenti = await db.all(`SELECT * FROM alimenti_dieta WHERE id_pasto = ?`, [p.id]);
       }
     }
 
-    dieta.giorni = Object.values(giorniMap);
-
     res.json({
       success: true,
-      data: dieta
+      data: {
+        ...dieta,
+        giorni
+      }
     });
 
   } catch (err) {
-    console.error("Errore recupero dettaglio dieta:", err);
-    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore dettaglio dieta" } });
+    console.error('❌ Errore nel dettaglio dieta:', err);
+    res.status(500).json({ error: 'Errore nel caricamento dieta' });
   }
 });
+
 
 // 📄 Tutte le diete di un paziente
 router.get('/:id_paziente', async (req, res) => {

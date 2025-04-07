@@ -56,43 +56,50 @@ export default function Index() {
 
     fetchDieteSalvate(paziente.id);
 
-    if (edit) {
-      fetch(`http://localhost:5000/api/diete/dettaglio/${edit}`)
-        .then(res => res.json())
-        .then(d => {
-          if (!d || !d.dati) return;
-          const parsed = JSON.parse(d.dati);
-          if (!parsed.giorni) return;
-          const nuovaDieta = parsed.giorni.map(g => g.pasti.map(p => p.alimenti));
-          setDieta(nuovaDieta);
-          setDietaSelezionata({ id: d.id, nome_dieta: d.nome_dieta });
+if (edit) {
+  fetch(`http://localhost:5000/api/diete/dettaglio/${edit}`)
+    .then(res => res.json())
+    .then(res => {
+      if (!res.success || !res.data || !res.data.giorni) {
+        alert('❌ Questa dieta non contiene dati validi');
+        return;
+      }
 
-          // Carica fabbisogni da fabbisogni_dieta
-          fetch(`http://localhost:5000/api/diete/fabbisogni/${d.id}`)
-            .then(r => r.json())
-            .then(fab => {
-              if (fab && fab.fabbisogno_calorico) {
-                setFabbisogni(fab);
-              } else {
-                // Calcolo automatico se non trovati
-                fetch(`http://localhost:5000/api/diete/fabbisogni/calcola/${d.id}`, { method: 'POST' })
-                  .then(r => r.json())
-                  .then(res => {
-                    if (res && res.fabbisogno_calorico) {
-                      setFabbisogni(res);
-                    } else {
-                      alert('❌ Calcolo fabbisogni fallito.');
-                    }
-                  });
-              }
+      const nuovaDieta = res.data.giorni.map(g => g.pasti.map(p => p.alimenti));
+      setDieta(nuovaDieta);
+      setDietaSelezionata({ id: res.data.id, nome_dieta: res.data.nome });
+
+      // Carica fabbisogni da fabbisogni_dieta
+      fetch(`http://localhost:5000/api/diete/fabbisogni/${res.data.id}`)
+        .then(r => r.json())
+        .then(fab => {
+          if (fab && fab.fabbisogno_calorico) {
+            setFabbisogni(fab);
+          } else {
+            fetch(`http://localhost:5000/api/diete/fabbisogni/calcola/${res.data.id}`, {
+              method: 'POST'
             })
-            .catch(err => {
-              console.error('❌ Errore fetch fabbisogni:', err);
-              alert('❌ Errore durante il recupero dei fabbisogni.');
-            });
+              .then(r => r.json())
+              .then(res => {
+                if (res && res.fabbisogno_calorico) {
+                  setFabbisogni(res);
+                } else {
+                  alert('❌ Calcolo fabbisogni fallito.');
+                }
+              });
+          }
         })
-        .catch(err => console.error('❌ Errore caricamento dieta da ID:', err));
-    }
+        .catch(err => {
+          console.error('❌ Errore fetch fabbisogni:', err);
+          alert('❌ Errore durante il recupero dei fabbisogni.');
+        });
+    })
+    .catch(err => {
+      console.error('❌ Errore caricamento dieta da ID:', err);
+      alert('❌ Errore durante il caricamento della dieta.');
+    });
+}
+
   }, [edit]);
 
   const fetchDieteSalvate = (id) => {
