@@ -131,21 +131,29 @@ if (!data.success || !Array.isArray(data.diete)) {
     });
 };
 
-  const handleAddFood = (dayIndex, mealIndex, food) => {
-    const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;
-    const ratio = grams / 100;
-    const adjustedFood = {
-      ...food,
-      energia_kcal: (food.energia_kcal * ratio).toFixed(1),
-      proteine: (food.proteine * ratio).toFixed(1),
-      carboidrati: (food.carboidrati * ratio).toFixed(1),
-      lipidi_totali: (food.lipidi_totali * ratio).toFixed(1),
-      grams,
-    };
-    const updatedDieta = [...dieta];
-    updatedDieta[dayIndex][mealIndex].push(adjustedFood);
-    setDieta(updatedDieta);
+const handleAddFood = (dayIndex, mealIndex, food) => {
+  const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;
+  const ratio = grams / 100;
+
+  const adjustedFood = {
+    ...food,
+    energia_kcal: +(food.energia_kcal * ratio).toFixed(1),
+    proteine: +(food.proteine * ratio).toFixed(1),
+    carboidrati: +(food.carboidrati * ratio).toFixed(1),
+    lipidi_totali: +(food.lipidi_totali * ratio).toFixed(1),
+    grams,
   };
+
+  const updatedDieta = [...dieta];
+  updatedDieta[dayIndex][mealIndex].push(adjustedFood);
+  setDieta(updatedDieta);
+
+  // 🔥 ECCO IL PEZZO AGGIUNTO per default a 100g
+  setGramInput(prev => ({
+    ...prev,
+    [`${dayIndex}-${mealIndex}-${food.id}`]: grams
+  }));
+};
 
   const handleRemoveFood = (dayIndex, mealIndex, idx) => {
     const updated = [...dieta];
@@ -192,7 +200,7 @@ if (!data.success || !Array.isArray(data.diete)) {
             nome_pasto: pasti[pIndex] || '',
             orario: null,
 alimenti: pasto
-  .filter(al => al.id && al.grams && !isNaN(al.grams))
+  .filter(al => al.id && al.grams > 0 && !isNaN(al.grams))
   .map(al => ({
     alimento_id: al.id,
     grammi: parseFloat(al.grams),
@@ -729,10 +737,10 @@ const handleCaricaDieta = async (dietaSalvata) => {
 function totalPerPasto(items) {
   return items.reduce(
     (acc, food) => ({
-      kcal: acc.kcal + parseFloat(food.energia_kcal),
-      proteine: acc.proteine + parseFloat(food.proteine),
-      grassi: acc.grassi + parseFloat(food.lipidi_totali),
-      carboidrati: acc.carboidrati + parseFloat(food.carboidrati),
+      kcal: acc.kcal + (parseFloat(food.energia_kcal) || 0),
+      proteine: acc.proteine + (parseFloat(food.proteine) || 0),
+      grassi: acc.grassi + (parseFloat(food.lipidi_totali) || 0),
+      carboidrati: acc.carboidrati + (parseFloat(food.carboidrati) || 0),
     }),
     { kcal: 0, proteine: 0, grassi: 0, carboidrati: 0 }
   );
