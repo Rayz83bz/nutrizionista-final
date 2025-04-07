@@ -102,26 +102,30 @@ if (edit) {
 
   }, [edit]);
 
-  const fetchDieteSalvate = (id) => {
-    fetch(`http://localhost:5000/api/diete/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setDieteSalvate(data);
-        } else if (data && data.diete && Array.isArray(data.diete)) {
-          setDieteSalvate(data.diete);
-        } else {
-          console.error('⚠️ Risposta API non valida:', data);
-          setDieteSalvate([]);
-          alert('⚠️ Errore caricamento diete salvate.');
-        }
-      })
-      .catch(err => {
-        console.error('❌ Errore fetch:', err);
-        setDieteSalvate([]);
-        alert('❌ Errore rete nel caricamento delle diete.');
-      });
-  };
+const fetchDieteSalvate = (id) => {
+  fetch(`http://localhost:5000/api/diete/${id}`)
+    .then(res => res.json())
+    .then(data => {
+	console.log('📦 Risposta grezza dal backend:', data); // ⬅️ log importantissimo
+      const lista = Array.isArray(data)
+        ? data
+        : Array.isArray(data.diete)
+        ? data.diete
+        : [];
+
+      if (lista.length === 0) {
+        console.warn('⚠️ Nessuna dieta trovata o formato errato:', data);
+        alert('⚠️ Nessuna dieta trovata o risposta non valida.');
+      }
+
+      setDieteSalvate(lista);
+    })
+    .catch(err => {
+      console.error('❌ Errore fetch:', err);
+      alert('❌ Errore rete nel caricamento delle diete.');
+    });
+};
+
 
   const handleAddFood = (dayIndex, mealIndex, food) => {
     const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;
@@ -215,40 +219,38 @@ const payload = {
     }
   };
 
-  const handleDuplicaDieta = async (dieta) => {
-    try {
-      if (!dieta.dati) {
-        alert('❌ Questa dieta non può essere duplicata (dati mancanti)');
-        return;
-      }
+const handleDuplicaDieta = async (dieta) => {
+  try {
+    // Recupera i dettagli reali dal backend
+    const res = await fetch(`http://localhost:5000/api/diete/dettaglio/${dieta.id}`);
+    const json = await res.json();
 
-      const parsed = JSON.parse(dieta.dati);
-      if (!parsed.giorni || !Array.isArray(parsed.giorni)) {
-        alert('❌ Dati non validi per la duplicazione');
-        return;
-      }
-
-      const nuovoNome = prompt("Inserisci un nome per la dieta duplicata:", `Dieta ${new Date().toLocaleDateString()}`);
-      if (!nuovoNome) return;
-
-      await fetch('http://localhost:5000/api/diete/salva', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pazienteId: selectedPaziente.id,
-          nome_dieta: nuovoNome,
-          fabbisogni: parsed.fabbisogni || null,
-          giorni: parsed.giorni
-        }),
-      });
-
-      await fetchDieteSalvate(selectedPaziente.id);
-      alert('✅ Dieta duplicata con successo!');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Errore durante la duplicazione.');
+    if (!json.success || !json.data || !json.data.giorni) {
+      alert('❌ Dati non validi per duplicare questa dieta');
+      return;
     }
-  };
+
+    const nuovoNome = prompt("Inserisci un nome per la dieta duplicata:", `Dieta ${new Date().toLocaleDateString()}`);
+    if (!nuovoNome) return;
+
+    await fetch('http://localhost:5000/api/diete/salva', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pazienteId: selectedPaziente.id,
+        nome_dieta: nuovoNome,
+        fabbisogni: json.data.fabbisogni || null,
+        giorni: json.data.giorni
+      }),
+    });
+
+    await fetchDieteSalvate(selectedPaziente.id);
+    alert('✅ Dieta duplicata con successo!');
+  } catch (err) {
+    console.error(err);
+    alert('❌ Errore durante la duplicazione.');
+  }
+};
 
   const handleEliminaDieta = async (id) => {
     if (!window.confirm('Confermi l\'eliminazione della dieta?')) return;
