@@ -51,33 +51,34 @@ export default function DietaForm() {
 const handleDuplica = async (dieta) => {
   try {
     const res = await fetch(`http://localhost:5000/api/diete/dettaglio/${dieta.id}`);
-    const result = await res.json();
+    const json = await res.json();
 
-    if (!result.success || !result.data || !result.data.giorni) {
-      alert('❌ Dieta non valida o senza giorni');
+    if (!json.success || !json.data || !json.data.giorni) {
+      alert('❌ Dati non validi per duplicare questa dieta');
       return;
     }
 
-    const nuovaDieta = result.data;
-    const nuovoNome = prompt("Inserisci un nome per la dieta duplicata:", `${nuovaDieta.nome} (copia)`);
-
+    const nuovoNome = prompt('Nome per la dieta duplicata:', `${dieta.nome_dieta} (copia)`);
     if (!nuovoNome) return;
 
     await fetch('http://localhost:5000/api/diete/salva', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id_visita: nuovaDieta.id_visita,
+        pazienteId: paziente.id,
+        id_visita: json.data.id_visita,
         nome_dieta: nuovoNome,
-        giorni: nuovaDieta.giorni
+        giorni: json.data.giorni,
+        // fabbisogni: json.data.fabbisogni, // se previsto
       }),
     });
 
-    alert('✅ Dieta duplicata con successo!');
-    // Se hai una funzione per ricaricare l’elenco delle diete, chiamala qui
+    const updated = await fetch(`http://localhost:5000/api/diete/${paziente.id}`).then(r => r.json());
+    setDiete(updated);
+    alert('✅ Dieta duplicata');
   } catch (err) {
-    console.error('❌ Errore duplicazione:', err);
-    alert('❌ Errore durante la duplicazione della dieta');
+    console.error(err);
+    alert('❌ Errore duplicazione');
   }
 };
 
