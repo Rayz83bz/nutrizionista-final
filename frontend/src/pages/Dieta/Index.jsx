@@ -140,29 +140,27 @@ if (!data.success || !Array.isArray(data.diete)) {
       alert('❌ Errore rete nel caricamento delle diete.');
     });
 };
-const handleAddFood = (dayIndex, mealIndex, food) => {
-  const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;
-  const ratio = grams / 100;
+const handleAddFood = (giornoIndex, pastoIndex, alimento) => {
+  const grammi = parseFloat(gramInput[`${giornoIndex}-${pastoIndex}-${alimento.id}`]) || 100;
+  const rapporto = grammi / 100;
 
-  // Costruzione sicura e completa dell'alimento
-  const adjustedFood = {
-    id: food.id, // ✅ ID REALE dell'alimento dal database
-    nome: food.nome,
-    energia_kcal: +(parseFloat(food.energia_kcal) * ratio).toFixed(1),
-    proteine: +(parseFloat(food.proteine) * ratio).toFixed(1),
-    carboidrati: +(parseFloat(food.carboidrati) * ratio).toFixed(1),
-    lipidi_totali: +(parseFloat(food.lipidi_totali) * ratio).toFixed(1),
-    grams,
+  const alimentoModificato = {
+    id: alimento.id, // ✅ ID originale dal DB
+    nome: alimento.nome,
+    energia_kcal: +(parseFloat(alimento.energia_kcal) * rapporto).toFixed(1),
+    proteine: +(parseFloat(alimento.proteine) * rapporto).toFixed(1),
+    carboidrati: +(parseFloat(alimento.carboidrati) * rapporto).toFixed(1),
+    lipidi_totali: +(parseFloat(alimento.lipidi_totali) * rapporto).toFixed(1),
+    grammi
   };
 
-  const updatedDieta = [...dieta];
-  updatedDieta[dayIndex][mealIndex].push(adjustedFood);
-  setDieta(updatedDieta);
+  const nuovaDieta = [...dieta];
+  nuovaDieta[giornoIndex][pastoIndex].push(alimentoModificato);
+  setDieta(nuovaDieta);
 
-  // Salvo anche i grammi selezionati per il componente input
   setGramInput(prev => ({
     ...prev,
-    [`${dayIndex}-${mealIndex}-${food.id}`]: grams
+    [`${giornoIndex}-${pastoIndex}-${alimento.id}`]: grammi
   }));
 };
 
@@ -202,27 +200,24 @@ nome_dieta: nomeDieta || dietaSelezionata?.nome_dieta || `Dieta ${new Date().toL
         grassi: fabbisogni?.grassi || 0,
         carboidrati: fabbisogni?.carboidrati || 0,
       },
-      giorni: // Qui usiamo "giorni" come struttura completa dei giorni salvati
-        giorniDefault.map((_, gIndex) => ({
-          numero_giorno: gIndex + 1,
-          // Per semplicità, qui assegnamo una stringa vuota per note se non esiste
-          note: '',
-          pasti: dieta[gIndex].map((pasto, pIndex) => ({
-            nome_pasto: pasti[pIndex] || '',
-            orario: null,
-alimenti: pasto
-  .filter(al => al.id && al.grams > 0 && !isNaN(al.grams))
-  .map(al => ({
-    alimento_id: al.id,
-    grammi: parseFloat(al.grams),
-    energia_kcal: parseFloat(al.energia_kcal),
-    proteine: parseFloat(al.proteine),
-    carboidrati: parseFloat(al.carboidrati),
-    lipidi_totali: parseFloat(al.lipidi_totali),
-    note: al.note || null
+giorni: giorniDefault.map((_, giornoIndex) => ({
+  numero_giorno: giornoIndex + 1,
+  note: '',
+  pasti: dieta[giornoIndex].map((pasto, pastoIndex) => ({
+    nome_pasto: pasti[pastoIndex],
+    orario: null,
+    alimenti: pasto.map(a => ({
+      alimento_id: a.id,
+      grammi: a.grammi,
+      energia_kcal: a.energia_kcal,
+      proteine: a.proteine,
+      carboidrati: a.carboidrati,
+      lipidi_totali: a.lipidi_totali,
+      note: a.note || null
+    }))
   }))
-          }))
-        }))
+}))
+
     };
 console.log('📦 Payload da salvare:', JSON.stringify(payload, null, 2));
 if (!window.confirm('Confermi il salvataggio della dieta?')) {
@@ -303,10 +298,29 @@ const handleCaricaDieta = async (dietaSalvata) => {
       return;
     }
 
-    const nuovaDieta = json.data.giorni.map(g => g.pasti.map(p => p.alimenti));
-    setDieta(nuovaDieta);
-    setDietaSelezionata({ id: json.data.id, nome_dieta: json.data.nome });
+    const enrichedDieta = json.data.giorni.map(giorno =>
+      giorno.pasti.map(pasto =>
+        pasto.alimenti.map(al => {
+          const food = foods.find(f => f.id === al.alimento_id);
+          if (!food) return null; // fallback se alimento mancante
+          const ratio = al.quantita / 100;
 
+          return {
+            id: food.id,
+            nome: food.nome,
+            energia_kcal: +(food.energia_kcal * ratio).toFixed(1),
+            proteine: +(food.proteine * ratio).toFixed(1),
+            carboidrati: +(food.carboidrati * ratio).toFixed(1),
+            lipidi_totali: +(food.lipidi_totali * ratio).toFixed(1),
+            grams: al.quantita,
+            note: al.note || ''
+          };
+        }).filter(Boolean)
+      )
+    );
+
+    setDieta(enrichedDieta);
+    setDietaSelezionata({ id: json.data.id, nome_dieta: json.data.nome });
     if (json.data.fabbisogni) setFabbisogni(json.data.fabbisogni);
     alert('✅ Dieta caricata correttamente!');
   } catch (err) {
