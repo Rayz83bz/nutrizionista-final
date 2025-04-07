@@ -228,7 +228,8 @@ router.get('/:id_paziente', async (req, res) => {
       ORDER BY v.data DESC, d.sub_index ASC
     `, [req.params.id_paziente]);
 
-    res.json({ success: true, data: result });
+    res.json({ success: true, diete: result });
+
   } catch (err) {
     console.error('Errore recupero diete:', err);
     res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore recupero diete" } });
