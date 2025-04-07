@@ -106,27 +106,29 @@ export default function Index() {
     }
   }, [edit]);
 
-  const fetchDieteSalvate = (id) => {
-    fetch(`http://localhost:5000/api/diete/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        console.log('📦 Risposta grezza dal backend:', data);
-        const lista = Array.isArray(data)
-          ? data
-          : Array.isArray(data.diete)
-          ? data.diete
-          : [];
-        if (lista.length === 0) {
-          console.warn('⚠️ Nessuna dieta trovata o formato errato:', data);
-          alert('⚠️ Nessuna dieta trovata o risposta non valida.');
-        }
-        setDieteSalvate(lista);
-      })
-      .catch(err => {
-        console.error('❌ Errore fetch diete:', err);
-        alert('❌ Errore rete nel caricamento delle diete.');
-      });
-  };
+const fetchDieteSalvate = (id) => {
+  fetch(`http://localhost:5000/api/diete/${id}`)
+    .then(res => res.json())
+    .then(data => {
+      console.log('📦 Risposta grezza dal backend:', data);
+
+      if (!data.success || !Array.isArray(data.diete)) {
+        console.warn('⚠️ Nessuna dieta trovata o formato errato:', data);
+        alert('⚠️ Nessuna dieta trovata o errore nel formato.');
+        return;
+      }
+
+      if (data.diete.length === 0) {
+        alert('⚠️ Nessuna dieta trovata per questo paziente.');
+      }
+
+      setDieteSalvate(data.diete);
+    })
+    .catch(err => {
+      console.error('❌ Errore fetch diete:', err);
+      alert('❌ Errore rete nel caricamento delle diete.');
+    });
+};
 
   const handleAddFood = (dayIndex, mealIndex, food) => {
     const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;

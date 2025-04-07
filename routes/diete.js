@@ -217,23 +217,23 @@ router.get('/dettaglio/:id', async (req, res) => {
 
 // 📄 Tutte le diete di un paziente
 router.get('/:id_paziente', async (req, res) => {
+  const { id_paziente } = req.params;
   try {
-    const result = await db.all(`
-      SELECT 
-        d.id, d.nome, d.sub_index, d.data_creazione,
-        d.id_visita, v.data AS data_visita
+    const sql = `
+      SELECT d.*
       FROM diete d
       JOIN visite v ON d.id_visita = v.id
       WHERE v.id_paziente = ?
-      ORDER BY v.data DESC, d.sub_index ASC
-    `, [req.params.id_paziente]);
-
+      ORDER BY d.data_creazione DESC
+    `;
+    const result = await db.all(sql, [id_paziente]);
     res.json({ success: true, diete: result });
-
   } catch (err) {
-    console.error('Errore recupero diete:', err);
-    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore recupero diete" } });
+    console.error('Errore get diete:', err);
+    res.status(500).json({ success: false, error: 'Errore nel recupero delle diete' });
   }
 });
+
+
 
 module.exports = router;
