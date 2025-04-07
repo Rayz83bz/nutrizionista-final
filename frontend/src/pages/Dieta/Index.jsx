@@ -112,11 +112,12 @@ const fetchDieteSalvate = (id) => {
     .then(data => {
       console.log('📦 Risposta grezza dal backend:', data);
 
-      if (!data.success || !Array.isArray(data.diete)) {
-        console.warn('⚠️ Nessuna dieta trovata o formato errato:', data);
-        alert('⚠️ Nessuna dieta trovata o errore nel formato.');
-        return;
-      }
+if (!data.success || !Array.isArray(data.diete)) {
+  console.warn('⚠️ Nessuna dieta trovata o formato errato:', data);
+  setDieteSalvate([]); // fallback a lista vuota
+  return;
+}
+
 
       if (data.diete.length === 0) {
         alert('⚠️ Nessuna dieta trovata per questo paziente.');
@@ -190,14 +191,17 @@ const fetchDieteSalvate = (id) => {
           pasti: dieta[gIndex].map((pasto, pIndex) => ({
             nome_pasto: pasti[pIndex] || '',
             orario: null,
-            alimenti: pasto.map(al => ({
-              alimento_id: al.id,
-              grammi: al.grams,
-              energia_kcal: parseFloat(al.energia_kcal),
-              proteine: parseFloat(al.proteine),
-              carboidrati: parseFloat(al.carboidrati),
-              lipidi_totali: parseFloat(al.lipidi_totali)
-            }))
+alimenti: pasto
+  .filter(al => al.id && al.grams && !isNaN(al.grams))
+  .map(al => ({
+    alimento_id: al.id,
+    grammi: parseFloat(al.grams),
+    energia_kcal: parseFloat(al.energia_kcal),
+    proteine: parseFloat(al.proteine),
+    carboidrati: parseFloat(al.carboidrati),
+    lipidi_totali: parseFloat(al.lipidi_totali),
+    note: al.note || null
+  }))
           }))
         }))
     };
@@ -265,27 +269,27 @@ const fetchDieteSalvate = (id) => {
     }
   };
 
-  const handleCaricaDieta = (dietaSalvata) => {
-    try {
-      if (!dietaSalvata.dati) {
-        alert('❌ Questa dieta non contiene dati caricabili.');
-        return;
-      }
-      const parsed = JSON.parse(dietaSalvata.dati);
-      if (!parsed.giorni || !Array.isArray(parsed.giorni)) {
-        alert('❌ Formato dati non valido.');
-        return;
-      }
-      const nuovaDieta = parsed.giorni.map(g => g.pasti.map(p => p.alimenti));
-      setDieta(nuovaDieta);
-      setDietaSelezionata(dietaSalvata);
-      if (parsed.fabbisogni) setFabbisogni(parsed.fabbisogni);
-      alert('✅ Dieta caricata correttamente');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Errore nel caricamento della dieta');
+const handleCaricaDieta = async (dietaSalvata) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/diete/dettaglio/${dietaSalvata.id}`);
+    const json = await res.json();
+
+    if (!json.success || !json.data || !json.data.giorni) {
+      alert('❌ Dati non validi per questa dieta.');
+      return;
     }
-  };
+
+    const nuovaDieta = json.data.giorni.map(g => g.pasti.map(p => p.alimenti));
+    setDieta(nuovaDieta);
+    setDietaSelezionata({ id: json.data.id, nome_dieta: json.data.nome });
+
+    if (json.data.fabbisogni) setFabbisogni(json.data.fabbisogni);
+    alert('✅ Dieta caricata correttamente!');
+  } catch (err) {
+    console.error(err);
+    alert('❌ Errore nel caricamento della dieta.');
+  }
+};
 
   // Helper per i totali nutrizionali
   const totalPerPasto = (items) =>
