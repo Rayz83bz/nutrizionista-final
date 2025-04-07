@@ -52,6 +52,16 @@ export default function Index() {
     }
 
     setSelectedPaziente(paziente);
+    if (fromVisita) {
+      fetch(`http://localhost:5000/api/visite/${fromVisita}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.visita) {
+            setVisitaCollegata(data.visita);
+          }
+        })
+        .catch(err => console.error('❌ Errore caricamento visita collegata:', err));
+    }
 
     fetch('http://localhost:5000/api/database-alimenti')
       .then(res => res.json())
@@ -185,7 +195,7 @@ const handleAddFood = (dayIndex, mealIndex, food) => {
     const payload = {
       pazienteId: selectedPaziente.id,
       id_visita: fromVisita || null,
-      nome_dieta: dietaSelezionata?.nome_dieta || nomeDieta || `Dieta ${new Date().toLocaleDateString()}`,
+nome_dieta: nomeDieta || dietaSelezionata?.nome_dieta || `Dieta ${new Date().toLocaleDateString()}`,
       fabbisogni: {
         fabbisogno_calorico: fabbisogni?.fabbisogno_calorico || 0,
         proteine: fabbisogni?.proteine || 0,
@@ -214,6 +224,11 @@ alimenti: pasto
           }))
         }))
     };
+console.log('📦 Payload da salvare:', JSON.stringify(payload, null, 2));
+if (!window.confirm('Confermi il salvataggio della dieta?')) {
+  console.log('⛔️ Salvataggio annullato dall’utente.');
+  return;
+}
 
     try {
       const method = dietaSelezionata ? 'PUT' : 'POST';
@@ -721,14 +736,6 @@ const handleCaricaDieta = async (dietaSalvata) => {
             );
           })}
         </GridLayout>
-      </div>
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={handleSalvaDieta}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          💾 Salva dieta
-        </button>
       </div>
     </div>
   );
