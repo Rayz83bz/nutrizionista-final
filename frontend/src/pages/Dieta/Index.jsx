@@ -130,17 +130,18 @@ if (!data.success || !Array.isArray(data.diete)) {
       alert('❌ Errore rete nel caricamento delle diete.');
     });
 };
-
 const handleAddFood = (dayIndex, mealIndex, food) => {
   const grams = parseFloat(gramInput[`${dayIndex}-${mealIndex}-${food.id}`]) || 100;
   const ratio = grams / 100;
 
+  // Costruzione sicura e completa dell'alimento
   const adjustedFood = {
-    ...food,
-    energia_kcal: +(food.energia_kcal * ratio).toFixed(1),
-    proteine: +(food.proteine * ratio).toFixed(1),
-    carboidrati: +(food.carboidrati * ratio).toFixed(1),
-    lipidi_totali: +(food.lipidi_totali * ratio).toFixed(1),
+    id: food.id, // ✅ ID REALE dell'alimento dal database
+    nome: food.nome,
+    energia_kcal: +(parseFloat(food.energia_kcal) * ratio).toFixed(1),
+    proteine: +(parseFloat(food.proteine) * ratio).toFixed(1),
+    carboidrati: +(parseFloat(food.carboidrati) * ratio).toFixed(1),
+    lipidi_totali: +(parseFloat(food.lipidi_totali) * ratio).toFixed(1),
     grams,
   };
 
@@ -148,7 +149,7 @@ const handleAddFood = (dayIndex, mealIndex, food) => {
   updatedDieta[dayIndex][mealIndex].push(adjustedFood);
   setDieta(updatedDieta);
 
-  // 🔥 ECCO IL PEZZO AGGIUNTO per default a 100g
+  // Salvo anche i grammi selezionati per il componente input
   setGramInput(prev => ({
     ...prev,
     [`${dayIndex}-${mealIndex}-${food.id}`]: grams
