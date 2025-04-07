@@ -1,6 +1,6 @@
 @echo off
 REM Avvia il server in una nuova finestra
-start "Server" cmd /k "cd /d C:\Users\u02\Desktop\NutrizionistaFinal\ && node server.js"
+start "Server" cmd /k "cd /d C:\Users\u02\Desktop\Nutrizionista-Final\ && node server.js"
 
 REM Attendi 3 secondi
 timeout /t 3 /nobreak >nul
