@@ -176,6 +176,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // 🔍 Recupera una singola dieta completa (giorni → pasti → alimenti)
+// 🔍 Recupera una singola dieta per ID (con struttura completa)
 router.get('/dettaglio/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -229,7 +230,11 @@ router.get('/dettaglio/:id', async (req, res) => {
     }
 
     dieta.giorni = Object.values(giorniMap);
-    res.json({ success: true, data: dieta });
+
+    res.json({
+      success: true,
+      data: dieta
+    });
 
   } catch (err) {
     console.error("Errore recupero dettaglio dieta:", err);
