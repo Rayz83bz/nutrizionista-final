@@ -71,14 +71,30 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// ❌ Elimina visita
+// ❌ Elimina visita (con controllo di diete collegate)
 router.delete('/:id', async (req, res) => {
+  const id = req.params.id;
+
   try {
-    await db.run(`DELETE FROM visite WHERE id = ?`, [req.params.id]);
+    const count = await db.get(`SELECT COUNT(*) as total FROM diete WHERE id_visita = ?`, [id]);
+    if (count?.total > 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VISITA_CON_DIETE',
+          message: 'Impossibile eliminare: la visita ha diete collegate.'
+        }
+      });
+    }
+
+    await db.run(`DELETE FROM visite WHERE id = ?`, [id]);
     res.json({ success: true });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('❌ Errore eliminazione visita:', err);
+    res.status(500).json({ success: false, error: { code: 'SERVER_ERROR', message: err.message } });
   }
 });
+
 
 module.exports = router;
