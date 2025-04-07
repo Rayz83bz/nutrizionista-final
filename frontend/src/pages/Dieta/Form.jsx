@@ -19,8 +19,14 @@ export default function DietaForm() {
 
     fetch(`http://localhost:5000/api/diete/${pazienteAttivo.id}`)
       .then(res => res.json())
-      .then(async data => {
-        if (!Array.isArray(data)) return setDiete([]);
+.then(async res => {
+  console.log("📦 Risposta grezza dal backend:", res);
+  if (!res.success || !Array.isArray(res.data)) {
+    console.warn("⚠️ Nessuna dieta trovata o formato errato:", res);
+    return setDiete([]);
+  }
+  const data = res.data;
+
 
         // Per ogni dieta, carica i fabbisogni associati
         const conFabbisogni = await Promise.all(
