@@ -48,33 +48,38 @@ export default function DietaForm() {
     navigate(`/diete?edit=${dieta.id}`);
   };
 
-  const handleDuplica = async (dieta) => {
-    try {
-      const parsed = JSON.parse(dieta.dati);
-      const nuovoNome = prompt('Nome per la dieta duplicata:', dieta.nome_dieta + ' (copia)');
-      if (!nuovoNome) return;
+const handleDuplica = async (dieta) => {
+  try {
+    const res = await fetch(`http://localhost:5000/api/diete/dettaglio/${dieta.id}`);
+    const result = await res.json();
 
-      const res = await fetch('http://localhost:5000/api/diete/salva', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          pazienteId: paziente.id,
-          nome_dieta: nuovoNome,
-          fabbisogni: parsed.fabbisogni,
-          giorni: parsed.giorni,
-        }),
-      });
-
-      if (!res.ok) throw new Error('Errore duplicazione');
-
-      const updated = await fetch(`http://localhost:5000/api/diete/${paziente.id}`).then(r => r.json());
-      setDiete(updated);
-      alert('✅ Dieta duplicata');
-    } catch (err) {
-      console.error(err);
-      alert('❌ Errore duplicazione');
+    if (!result.success || !result.data || !result.data.giorni) {
+      alert('❌ Dieta non valida o senza giorni');
+      return;
     }
-  };
+
+    const nuovaDieta = result.data;
+    const nuovoNome = prompt("Inserisci un nome per la dieta duplicata:", `${nuovaDieta.nome} (copia)`);
+
+    if (!nuovoNome) return;
+
+    await fetch('http://localhost:5000/api/diete/salva', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_visita: nuovaDieta.id_visita,
+        nome_dieta: nuovoNome,
+        giorni: nuovaDieta.giorni
+      }),
+    });
+
+    alert('✅ Dieta duplicata con successo!');
+    // Se hai una funzione per ricaricare l’elenco delle diete, chiamala qui
+  } catch (err) {
+    console.error('❌ Errore duplicazione:', err);
+    alert('❌ Errore durante la duplicazione della dieta');
+  }
+};
 
   const handleElimina = async (id) => {
     if (!window.confirm('Confermi eliminazione?')) return;
