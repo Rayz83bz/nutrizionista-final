@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// 🛡️ Middleware di validazione dieta
+// Middleware di validazione dieta
 function validateDieta(req, res, next) {
   const { nome_dieta, giorni } = req.body;
 
@@ -32,7 +32,7 @@ function validateDieta(req, res, next) {
   next();
 }
 
-// 🔄 Salva nuova dieta
+// POST /api/diete/salva
 router.post('/salva', validateDieta, async (req, res) => {
   const { nome_dieta, giorni, id_visita, paziente_id } = req.body;
 
@@ -93,7 +93,7 @@ router.post('/salva', validateDieta, async (req, res) => {
   }
 });
 
-// 🔁 Aggiorna dieta
+// PUT /api/diete/:id
 router.put('/:id', validateDieta, async (req, res) => {
   const dietaId = req.params.id;
   const { nome_dieta, giorni, id_visita } = req.body;
@@ -157,7 +157,7 @@ router.put('/:id', validateDieta, async (req, res) => {
   }
 });
 
-// ❌ Elimina dieta
+// DELETE /api/diete/:id
 router.delete('/:id', async (req, res) => {
   const dietaId = req.params.id;
 
@@ -166,11 +166,9 @@ router.delete('/:id', async (req, res) => {
 
     for (const giorno of giorni) {
       const pasti = await db.all(`SELECT id FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
-
       for (const pasto of pasti) {
         await db.run(`DELETE FROM alimenti_dieta WHERE id_pasto = ?`, [pasto.id]);
       }
-
       await db.run(`DELETE FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
     }
 
@@ -184,7 +182,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// 🔍 Recupera una dieta con giorni, pasti, alimenti
+// GET /api/diete/dettaglio/:id
 router.get('/dettaglio/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -208,21 +206,14 @@ router.get('/dettaglio/:id', async (req, res) => {
       }
     }
 
-    res.json({
-      success: true,
-      data: {
-        ...dieta,
-        giorni
-      }
-    });
-
+    res.json({ success: true, data: { ...dieta, giorni } });
   } catch (err) {
     console.error('❌ Errore nel dettaglio dieta:', err);
     res.status(500).json({ error: 'Errore nel caricamento dieta' });
   }
 });
 
-// 📄 Tutte le diete di un paziente
+// GET /api/diete/:id_paziente
 router.get('/:id_paziente', async (req, res) => {
   const { id_paziente } = req.params;
   try {
@@ -241,7 +232,7 @@ router.get('/:id_paziente', async (req, res) => {
   }
 });
 
-// 🔗 Collega dieta a visita (PUT)
+// PUT /api/diete/:id/collega-visita
 router.put('/:id/collega-visita', async (req, res) => {
   const { id } = req.params;
   const { id_visita } = req.body;
@@ -251,11 +242,7 @@ router.put('/:id/collega-visita', async (req, res) => {
   }
 
   try {
-    const result = await db.run(
-      `UPDATE diete SET id_visita = ? WHERE id = ?`,
-      [id_visita, id]
-    );
-
+    const result = await db.run(`UPDATE diete SET id_visita = ? WHERE id = ?`, [id_visita, id]);
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Dieta non trovata' });
     }
@@ -267,61 +254,27 @@ router.put('/:id/collega-visita', async (req, res) => {
   }
 });
 
-// 🔍 Singola dieta con dati visita
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const dieta = await db.get(`
-      SELECT 
-        d.id, 
-        d.nome, 
-        d.paziente_id,
-        d.sub_index,
-        d.data_creazione,
-        d.id_visita,
-        v.data AS visita_data
-      FROM diete d
-      LEFT JOIN visite v ON d.id_visita = v.id
-      WHERE d.id = ?
-    `, [id]);
-
-    if (!dieta) {
-      return res.status(404).json({ success: false, error: 'Dieta non trovata' });
-    }
-
-    res.json({ success: true, data: dieta });
-  } catch (err) {
-    console.error('Errore nel recupero dieta:', err.message);
-    res.status(500).json({ success: false, error: 'Errore interno server' });
-  }
-});
-
-// 🔍 Tutte le diete
+// GET /api/diete
+// Esempio con paginazione
 router.get('/', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 20;
+  const offset = parseInt(req.query.offset) || 0;
+
   try {
     const diete = await db.all(`
-      SELECT 
-        d.id,
-        d.nome,
-        d.paziente_id,
-        p.nome AS nome_paziente,
-        p.cognome AS cognome_paziente,
-        d.sub_index,
-        d.data_creazione,
-        d.id_visita,
-        v.data AS visita_data
+      SELECT d.*, p.nome AS nome_paziente, p.cognome AS cognome_paziente, v.data AS visita_data
       FROM diete d
       LEFT JOIN pazienti p ON d.paziente_id = p.id
       LEFT JOIN visite v ON d.id_visita = v.id
       ORDER BY d.data_creazione DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, [limit, offset]);
 
     res.json({ success: true, data: diete });
   } catch (err) {
-    console.error('Errore nel recupero lista diete:', err.message);
-    res.status(500).json({ success: false, error: 'Errore interno server' });
+    res.status(500).json({ success: false, error: 'Errore interno' });
   }
 });
+
 
 module.exports = router;
