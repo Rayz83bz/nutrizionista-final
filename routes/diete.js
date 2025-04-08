@@ -38,7 +38,7 @@ function validateDieta(req, res, next) {
     for (const pasto of giorno.pasti) {
       if (!Array.isArray(pasto.alimenti)) continue;
       for (const alimento of pasto.alimenti) {
-        if (!alimento.alimento_id || alimento.grammi <= 0) {
+        if (!alimento.alimento_id || alimento.quantita <= 0) {
           return res.status(400).json({ 
             success: false, 
             error: { code: "INVALID_GRAMMI", message: "Ogni alimento deve avere quantità > 0" }
@@ -109,7 +109,7 @@ router.post('/salva', validateDieta, async (req, res) => {
           await db.run(
             `INSERT INTO alimenti_dieta (id_pasto, alimento_id, quantita, note)
              VALUES (?, ?, ?, ?)`,
-            [pastoId, alimento.alimento_id, alimento.grammi, alimento.note || null]
+            [pastoId, alimento.alimento_id, alimento.quantita, alimento.note || null]
           );
         }
       }
@@ -178,7 +178,7 @@ router.put('/:id', validateDieta, async (req, res) => {
           await db.run(
             `INSERT INTO alimenti_dieta (id_pasto, alimento_id, quantita, note)
              VALUES (?, ?, ?, ?)`,
-            [pastoId, alimento.alimento_id, alimento.grammi, alimento.note || null]
+            [pastoId, alimento.alimento_id, alimento.quantita, alimento.note || null]
           );
         }
       }

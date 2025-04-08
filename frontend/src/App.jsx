@@ -13,14 +13,11 @@ import PazienteForm from './components/PazienteForm';
 import TabsPaziente from './pages/Pazienti/TabsPaziente';
 
 // Dieta e database alimenti
-import DietaPage from './pages/Dieta/Index';  // unico file, usato per tutto
 import Alimenti from './pages/DatabaseAlimenti/Index';
 import Ricette from './pages/Ricette/Index';
 import Piani from './pages/Piani/Index';
 import Progressi from './pages/Progressi/Index';
-import Index from './pages/Dieta/Index';
-import DietaForm from './pages/Dieta/Form';
-import Dieta from './pages/Dieta/Index';
+import Dieta from './pages/Dieta/Index'; // unico file per la dieta
 import ListaDietePaziente from './pages/Dieta/Lista';
 
 // Visite, fabbisogni e avanzati

@@ -143,32 +143,35 @@ if (!data.success || !Array.isArray(data.diete)) {
     });
 };
 const handleAddFood = (giornoIndex, pastoIndex, alimento) => {
-const grammi = parseFloat(gramInput[`${giornoIndex}-${pastoIndex}-${alimento.id}`]) || 100;
-if (isNaN(grammi) || grammi <= 0) {
+const quantitaVal = parseFloat(gramInput[`${giornoIndex}-${pastoIndex}-${alimento.id}`]) || 100;
+if (isNaN(quantitaVal) || quantitaVal <= 0) {
   toast.error('Inserisci una quantità valida');
   return;
 }
 
-const rapporto = grammi / 100;
+const rapporto = quantitaVal / 100;
 
-  const alimentoModificato = {
-    id: alimento.id, // ✅ ID originale dal DB
-    nome: alimento.nome,
-    energia_kcal: +(parseFloat(alimento.energia_kcal) * rapporto).toFixed(1),
-    proteine: +(parseFloat(alimento.proteine) * rapporto).toFixed(1),
-    carboidrati: +(parseFloat(alimento.carboidrati) * rapporto).toFixed(1),
-    lipidi_totali: +(parseFloat(alimento.lipidi_totali) * rapporto).toFixed(1),
-    grammi
-  };
+const alimentoModificato = {
+  id: alimento.id, // ID originale dal DB
+  nome: alimento.nome,
+  energia_kcal: +(parseFloat(alimento.energia_kcal) * rapporto).toFixed(1),
+  proteine: +(parseFloat(alimento.proteine) * rapporto).toFixed(1),
+  carboidrati: +(parseFloat(alimento.carboidrati) * rapporto).toFixed(1),
+  lipidi_totali: +(parseFloat(alimento.lipidi_totali) * rapporto).toFixed(1),
+  quantita: quantitaVal // qui deve essere "quantita"
+};
+
+
 
   const nuovaDieta = [...dieta];
   nuovaDieta[giornoIndex][pastoIndex].push(alimentoModificato);
   setDieta(nuovaDieta);
 
-  setGramInput(prev => ({
-    ...prev,
-    [`${giornoIndex}-${pastoIndex}-${alimento.id}`]: grammi
-  }));
+setGramInput(prev => ({
+  ...prev,
+  [`${giornoIndex}-${pastoIndex}-${alimento.id}`]: quantitaVal
+}));
+
 };
 
   const handleRemoveFood = (dayIndex, mealIndex, idx) => {
@@ -191,76 +194,77 @@ const rapporto = grammi / 100;
     localStorage.removeItem('dietaLayout');
   };
 
-  const handleSalvaDieta = async () => {
-    if (!selectedPaziente?.id) {
-      alert('⚠️ Seleziona prima un paziente');
-      return;
-    }
-const hasInvalidFoods = dieta.some(giorno => 
-  giorno.some(pasto => 
-    pasto.some(al => !al.grammi || isNaN(al.grammi) || al.grammi <= 0)
-  )
-);
-    const payload = {
-      pazienteId: selectedPaziente.id,
-      id_visita: fromVisita || null,
-nome_dieta: nomeDieta || dietaSelezionata?.nome_dieta || `Dieta ${new Date().toLocaleDateString()}`,
-      fabbisogni: {
-        fabbisogno_calorico: fabbisogni?.fabbisogno_calorico || 0,
-        proteine: fabbisogni?.proteine || 0,
-        grassi: fabbisogni?.grassi || 0,
-        carboidrati: fabbisogni?.carboidrati || 0,
-      },
-giorni: giorniDefault.map((_, giornoIndex) => ({
-  numero_giorno: giornoIndex + 1,
-  note: '',
-  pasti: dieta[giornoIndex].map((pasto, pastoIndex) => ({
-    nome_pasto: pasti[pastoIndex],
-    orario: null,
+const handleSalvaDieta = async () => {
+  if (!selectedPaziente?.id) {
+    alert('⚠️ Seleziona prima un paziente');
+    return;
+  }
+  const payload = {
+    paziente_id: selectedPaziente.id,
+    id_visita: fromVisita || null,
+    nome_dieta: nomeDieta || (dietaSelezionata ? dietaSelezionata.nome_dieta : `Dieta ${new Date().toLocaleDateString()}`),
+    fabbisogni: {
+      fabbisogno_calorico: fabbisogni?.fabbisogno_calorico || 0,
+      proteine: fabbisogni?.proteine || 0,
+      grassi: fabbisogni?.grassi || 0,
+      carboidrati: fabbisogni?.carboidrati || 0,
+    },
+    giorni: giorniDefault.map((_, giornoIndex) => ({
+      numero_giorno: giornoIndex + 1,
+      note: '',
+      pasti: dieta[giornoIndex].map((pasto, pastoIndex) => ({
+        nome_pasto: pasti[pastoIndex],
+        orario: null,
 alimenti: pasto
-  .filter(al => al.id && !isNaN(al.grammi) && al.grammi > 0) // tiene solo quelli validi
-  .map(al => ({
-    alimento_id: al.id,
-    quantita: parseFloat(al.grammi),
-    energia_kcal: parseFloat(al.energia_kcal),
-    proteine: parseFloat(al.proteine),
-    carboidrati: parseFloat(al.carboidrati),
-    lipidi_totali: parseFloat(al.lipidi_totali),
-    note: al.note || null
-  }))
-
-  }))
-}))
-
+  .filter(al => al.id) // non serve il controllo di "grammi"
+  .map(al => {
+    const parsedQuantita = parseFloat(al.quantita);
+    const quantita = (!parsedQuantita || isNaN(parsedQuantita) || parsedQuantita <= 0)
+                      ? 100
+                      : parsedQuantita; // "quantita" viene usata ora
+    return {
+      alimento_id: al.id,
+      quantita: quantita,
+      energia_kcal: parseFloat(al.energia_kcal) || 0,
+      proteine: parseFloat(al.proteine) || 0,
+      carboidrati: parseFloat(al.carboidrati) || 0,
+      lipidi_totali: parseFloat(al.lipidi_totali) || 0,
+      note: al.note || null
     };
-console.log('📦 Payload da salvare:', JSON.stringify(payload, null, 2));
-if (!window.confirm('Confermi il salvataggio della dieta?')) {
-  console.log('⛔️ Salvataggio annullato dall’utente.');
-  return;
-}
-
-    try {
-      const method = dietaSelezionata ? 'PUT' : 'POST';
-      const url = dietaSelezionata
-        ? `http://localhost:5000/api/diete/${dietaSelezionata.id}`
-        : 'http://localhost:5000/api/diete/salva';
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) throw new Error('Errore durante il salvataggio');
-
-      alert(`✅ Dieta ${dietaSelezionata ? 'aggiornata' : 'salvata'} con successo!`);
-      fetchDieteSalvate(selectedPaziente.id);
-      setDietaSelezionata(null);
-    } catch (err) {
-      console.error(err);
-      alert('❌ Errore nel salvataggio della dieta.');
-    }
+  })
+      }))
+    }))
   };
+
+  console.log("PAYLOAD da salvare:", JSON.stringify(payload, null, 2));
+  if (!window.confirm('Confermi il salvataggio della dieta?')) {
+    console.log('⛔️ Salvataggio annullato dall’utente.');
+    return;
+  }
+console.log('ALIMENTI payload:', JSON.stringify(payload.giorni.flatMap(g => g.pasti.flatMap(p => p.alimenti)), null, 2));
+
+  try {
+    const method = dietaSelezionata ? 'PUT' : 'POST';
+    const url = dietaSelezionata
+      ? `http://localhost:5000/api/diete/${dietaSelezionata.id}`
+      : 'http://localhost:5000/api/diete/salva';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Errore durante il salvataggio');
+
+    alert(`✅ Dieta ${dietaSelezionata ? 'aggiornata' : 'salvata'} con successo!`);
+    fetchDieteSalvate(selectedPaziente.id);
+    setDietaSelezionata(null);
+  } catch (err) {
+    console.error(err);
+    alert('❌ Errore nel salvataggio della dieta.');
+  }
+};
 
   const handleDuplicaDieta = async (dieta) => {
     try {
@@ -276,7 +280,7 @@ if (!window.confirm('Confermi il salvataggio della dieta?')) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pazienteId: selectedPaziente.id,
+          paziente_id: selectedPaziente.id,
           nome_dieta: nuovoNome,
           fabbisogni: json.data.fabbisogni || null,
           giorni: json.data.giorni
@@ -326,7 +330,7 @@ const handleCaricaDieta = async (dietaSalvata) => {
             proteine: +(food.proteine * ratio).toFixed(1),
             carboidrati: +(food.carboidrati * ratio).toFixed(1),
             lipidi_totali: +(food.lipidi_totali * ratio).toFixed(1),
-            grams: al.quantita,
+quantita: al.quantita,
             note: al.note || ''
           };
         }).filter(Boolean)
@@ -723,13 +727,15 @@ const handleCaricaDieta = async (dietaSalvata) => {
                                       className="border p-1 w-16 text-xs"
                                       placeholder="gr"
                                       defaultValue="100"
-                                      onChange={(e) =>
-                                        setGramInput({
-                                          ...gramInput,
-                                          [`${dayIndex}-${mealIndex}-${food.id}`]: e.target.value,
-                                        })
-                                      }
-                                    />
+onChange={(e) => {
+  const quantitaVal = parseFloat(e.target.value) || 100;
+  setGramInput(prev => ({
+    ...prev,
+    [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
+  }));
+}}
+/>
+
                                   </td>
                                   <td>
                                     <button
@@ -746,7 +752,7 @@ const handleCaricaDieta = async (dietaSalvata) => {
                         <ul className="text-xs list-disc pl-4">
                           {dieta[dayIndex][mealIndex].map((food, idx) => (
 <li key={idx}>
-  {food.nome} – {food.grammi || 100} g
+  {food.nome} – {food.quantita || 100} g
                               <button
                                 onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
                                 className="ml-2 text-red-500"
