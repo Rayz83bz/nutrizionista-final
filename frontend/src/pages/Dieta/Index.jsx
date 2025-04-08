@@ -141,8 +141,13 @@ if (!data.success || !Array.isArray(data.diete)) {
     });
 };
 const handleAddFood = (giornoIndex, pastoIndex, alimento) => {
-  const grammi = parseFloat(gramInput[`${giornoIndex}-${pastoIndex}-${alimento.id}`]) || 100;
-  const rapporto = grammi / 100;
+const grammi = parseFloat(gramInput[`${giornoIndex}-${pastoIndex}-${alimento.id}`]) || 100;
+if (isNaN(grammi) || grammi <= 0) {
+  toast.error('Inserisci una quantità valida');
+  return;
+}
+
+const rapporto = grammi / 100;
 
   const alimentoModificato = {
     id: alimento.id, // ✅ ID originale dal DB
@@ -189,7 +194,11 @@ const handleAddFood = (giornoIndex, pastoIndex, alimento) => {
       alert('⚠️ Seleziona prima un paziente');
       return;
     }
-
+const hasInvalidFoods = dieta.some(giorno => 
+  giorno.some(pasto => 
+    pasto.some(al => !al.grammi || isNaN(al.grammi) || al.grammi <= 0)
+  )
+);
     const payload = {
       pazienteId: selectedPaziente.id,
       id_visita: fromVisita || null,
@@ -206,15 +215,18 @@ giorni: giorniDefault.map((_, giornoIndex) => ({
   pasti: dieta[giornoIndex].map((pasto, pastoIndex) => ({
     nome_pasto: pasti[pastoIndex],
     orario: null,
-    alimenti: pasto.map(a => ({
-      alimento_id: a.id,
-      grammi: a.grammi,
-      energia_kcal: a.energia_kcal,
-      proteine: a.proteine,
-      carboidrati: a.carboidrati,
-      lipidi_totali: a.lipidi_totali,
-      note: a.note || null
-    }))
+alimenti: pasto
+  .filter(al => al.id && !isNaN(al.grammi) && al.grammi > 0) // tiene solo quelli validi
+  .map(al => ({
+    alimento_id: al.id,
+    quantita: parseFloat(al.grammi),
+    energia_kcal: parseFloat(al.energia_kcal),
+    proteine: parseFloat(al.proteine),
+    carboidrati: parseFloat(al.carboidrati),
+    lipidi_totali: parseFloat(al.lipidi_totali),
+    note: al.note || null
+  }))
+
   }))
 }))
 
@@ -731,8 +743,8 @@ const handleCaricaDieta = async (dietaSalvata) => {
                         </table>
                         <ul className="text-xs list-disc pl-4">
                           {dieta[dayIndex][mealIndex].map((food, idx) => (
-                            <li key={idx}>
-                              {food.nome} – {food.grams} g
+<li key={idx}>
+  {food.nome} – {food.grammi || 100} g
                               <button
                                 onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
                                 className="ml-2 text-red-500"
