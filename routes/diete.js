@@ -61,7 +61,7 @@ function validateDieta(req, res, next) {
    Il campo id_visita è facoltativo (se non presente, viene salvato come NULL)
 ---------------------------------------------------------------------------- */
 router.post('/salva', validateDieta, async (req, res) => {
-  const { nome_dieta, giorni, id_visita, paziente_id } = req.body;
+  const { nome_dieta, giorni, id_visita, paziente_id, peso } = req.body;
 
   if (!paziente_id) {
     return res.status(400).json({ success: false, error: "ID paziente mancante" });
@@ -80,11 +80,11 @@ router.post('/salva', validateDieta, async (req, res) => {
     const sub_index = subResult?.max_sub !== null ? subResult.max_sub + 1 : 0;
     const now = new Date().toISOString();
 
-    const result = await db.run(
-      `INSERT INTO diete (paziente_id, id_visita, nome, sub_index, data_creazione)
-       VALUES (?, ?, ?, ?, ?)`,
-      [paziente_id, idVisitaFinale, nome_dieta, sub_index, now]
-    );
+const result = await db.run(
+  `INSERT INTO diete (paziente_id, id_visita, nome, sub_index, data_creazione, peso)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+  [paziente_id, idVisitaFinale, nome_dieta, sub_index, now, peso || null]
+);
 
     const dietaId = result.lastID;
 
@@ -134,17 +134,17 @@ router.post('/salva', validateDieta, async (req, res) => {
 ---------------------------------------------------------------------------- */
 router.put('/:id', validateDieta, async (req, res) => {
   const dietaId = req.params.id;
-  const { nome_dieta, giorni, id_visita } = req.body;
+const { nome_dieta, giorni, id_visita, peso } = req.body;
   const idVisitaFinale = (!id_visita || isNaN(id_visita)) ? null : id_visita;
 
   try {
     await db.run('BEGIN TRANSACTION');
     const now = new Date().toISOString();
 
-    await db.run(
-      `UPDATE diete SET nome = ?, data_creazione = ?, id_visita = ? WHERE id = ?`,
-      [nome_dieta, now, idVisitaFinale, dietaId]
-    );
+await db.run(
+  `UPDATE diete SET nome = ?, data_creazione = ?, id_visita = ?, peso = ? WHERE id = ?`,
+  [nome_dieta, now, idVisitaFinale, peso || null, dietaId]
+);
 
     // Elimina i giorni esistenti e relativi pasti e alimenti
     const giorniExist = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);

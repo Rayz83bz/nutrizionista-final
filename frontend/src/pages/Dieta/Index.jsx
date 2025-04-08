@@ -1,15 +1,15 @@
 // src/pages/Dieta/Index.jsx
 import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import GridLayout from 'react-grid-layout';
 //import { suggerisciAlimenti } from '../../utils/dietaUtils';
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
+
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const pasti = ['Colazione', 'Spuntino Mattutino', 'Pranzo', 'Spuntino Pomeridiano', 'Cena'];
-const giorniDefault = ['Giorno 1', 'Giorno 2', 'Giorno 3', 'Giorno 4', 'Giorno 5', 'Giorno 6', 'Giorno 7'];
+const giorniDefault = ['Giorno 1', 'Giorno 2', 'Giorno 3', 'Giorno 4', 'Giorno 5', 'Giorno 6', 'Giorno 7', 'Fabbisogno'];
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 
 export default function Index() {
@@ -18,8 +18,10 @@ export default function Index() {
   const navigate = useNavigate();
   const fromVisita = new URLSearchParams(location.search).get('fromVisita');
   const edit = new URLSearchParams(location.search).get('edit');
-
+const [peso, setPeso] = useState(null);
 const nuova = new URLSearchParams(location.search).get('nuova');
+const [tabAttivo, setTabAttivo] = useState(0);
+const [modificaPeso, setModificaPeso] = useState(false);
 
   const [foods, setFoods] = useState([]);
   const [visitaCollegata, setVisitaCollegata] = useState(null);
@@ -39,9 +41,10 @@ const nuova = new URLSearchParams(location.search).get('nuova');
   const [nomeDieta, setNomeDieta] = useState('');
 
   useEffect(() => {
-if (!fromVisita && !edit && !nuova) {
-  navigate('/diete/form');
+if (!fromVisita && !edit && !nuova && location.pathname === '/dieta') {
+  navigate('/dieta?nuova=1');
 }
+
   }, [fromVisita, edit, navigate]);
 
   useEffect(() => {
@@ -85,7 +88,8 @@ if (!fromVisita && !edit && !nuova) {
           const nuovaDieta = res.data.giorni.map(g => g.pasti.map(p => p.alimenti));
           setDieta(nuovaDieta);
           setDietaSelezionata({ id: res.data.id, nome_dieta: res.data.nome });
-          setNomeDieta(res.data.nome);
+          if ('peso' in res.data) setPeso(res.data.peso);
+setNomeDieta(res.data.nome);
           // Carica fabbisogni
           fetch(`http://localhost:5000/api/diete/fabbisogni/${res.data.id}`)
             .then(r => r.json())
@@ -203,6 +207,7 @@ const handleSalvaDieta = async () => {
     paziente_id: selectedPaziente.id,
     id_visita: fromVisita || null,
     nome_dieta: nomeDieta || (dietaSelezionata ? dietaSelezionata.nome_dieta : `Dieta ${new Date().toLocaleDateString()}`),
+	peso: peso || null,
     fabbisogni: {
       fabbisogno_calorico: fabbisogni?.fabbisogno_calorico || 0,
       proteine: fabbisogni?.proteine || 0,
@@ -340,38 +345,20 @@ quantita: al.quantita,
     setDieta(enrichedDieta);
     setDietaSelezionata({ id: json.data.id, nome_dieta: json.data.nome });
     if (json.data.fabbisogni) setFabbisogni(json.data.fabbisogni);
+	if ('peso' in json.data) setPeso(json.data.peso);
     alert('✅ Dieta caricata correttamente!');
   } catch (err) {
     console.error(err);
     alert('❌ Errore nel caricamento della dieta.');
   }
 };
+const bmi = visitaCollegata?.peso && selectedPaziente?.altezza
+  ? visitaCollegata.peso / Math.pow(selectedPaziente.altezza / 100, 2)
+  : null;
 
-  // Helper per i totali nutrizionali
-  const totalPerPasto = (items) =>
-    items.reduce(
-      (acc, food) => ({
-        kcal: acc.kcal + parseFloat(food.energia_kcal),
-        proteine: acc.proteine + parseFloat(food.proteine),
-        grassi: acc.grassi + parseFloat(food.lipidi_totali),
-        carboidrati: acc.carboidrati + parseFloat(food.carboidrati),
-      }),
-      { kcal: 0, proteine: 0, grassi: 0, carboidrati: 0 }
-    );
-
-  const totalPerGiorno = (day) =>
-    day.reduce(
-      (acc, meal) => {
-        const mealTotal = totalPerPasto(meal);
-        return {
-          kcal: acc.kcal + mealTotal.kcal,
-          proteine: acc.proteine + mealTotal.proteine,
-          grassi: acc.grassi + mealTotal.grassi,
-          carboidrati: acc.carboidrati + mealTotal.carboidrati,
-        };
-      },
-      { kcal: 0, proteine: 0, grassi: 0, carboidrati: 0 }
-    );
+const pesoIdeale = selectedPaziente?.altezza
+  ? selectedPaziente.altezza - 100 - ((selectedPaziente.altezza - 150) / 4)
+  : null;
 
   const totalSettimana = dieta.reduce(
     (acc, day) => {
@@ -612,164 +599,348 @@ quantita: al.quantita,
             {dietaSelezionata ? '🔁 Aggiorna dieta' : '💾 Salva dieta'}
           </button>
         </div>
+{/* Parametri paziente e fabbisogni */}
+<div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm shadow-sm">
+  <div className="flex flex-wrap justify-between gap-3">
+    <div>
+      <strong>📏 Altezza:</strong> {selectedPaziente?.altezza || '-'} cm
+    </div>
+<div className="flex items-center gap-1">
+  <strong>⚖️ Peso:</strong>
+  {modificaPeso ? (
+    <input
+      type="number"
+      className="border px-1 py-0.5 rounded w-20 text-sm"
+      value={peso || ''}
+      onChange={(e) => setPeso(parseFloat(e.target.value))}
+      onBlur={() => setModificaPeso(false)}
+      autoFocus
+    />
+  ) : (
+    <span
+      className="cursor-pointer underline decoration-dotted decoration-1 hover:text-blue-700"
+      title="Clicca per modificare il peso"
+      onClick={() => setModificaPeso(true)}
+    >
+      {peso || visitaCollegata?.peso || '-'} kg ✏️
+    </span>
+  )}
+</div>
 
+<div>
+  <strong>💪 BMI:</strong>{' '}
+  {selectedPaziente?.altezza && peso ? (
+    (() => {
+      const bmiVal = peso / Math.pow(selectedPaziente.altezza / 100, 2);
+      const category =
+        bmiVal < 18.5
+          ? 'Sottopeso'
+          : bmiVal < 25
+          ? 'Normale'
+          : bmiVal < 30
+          ? 'Sovrappeso'
+          : 'Obeso';
+
+      const emoji =
+        bmiVal < 18.5 ? '😟' : bmiVal < 25 ? '💪' : bmiVal < 30 ? '⚠️' : '❌';
+
+      const colore =
+        bmiVal < 18.5
+          ? 'text-blue-600'
+          : bmiVal < 25
+          ? 'text-green-600'
+          : bmiVal < 30
+          ? 'text-yellow-600'
+          : 'text-red-600';
+
+      return (
+        <span className={`${colore} font-bold`} title={`Categoria: ${category}`}>
+          {bmiVal.toFixed(1)} {emoji}
+        </span>
+      );
+    })()
+  ) : (
+    '-'
+  )}
+</div>
+
+<div>
+  <strong>🎯 Peso ideale:</strong>{' '}
+  {(() => {
+    if (!selectedPaziente?.altezza || !peso) return '-';
+    const pesoIdeale = 22 * Math.pow(selectedPaziente.altezza / 100, 2);
+    const scostamento = peso - pesoIdeale;
+    const scostamentoPercent = (scostamento / pesoIdeale) * 100;
+    let color = 'text-green-700 font-bold';
+    if (Math.abs(scostamentoPercent) > 10) color = 'text-red-600 font-bold';
+    else if (Math.abs(scostamentoPercent) > 5) color = 'text-yellow-600 font-bold';
+
+    return (
+      <span className={color} title={`Scostamento: ${scostamento >= 0 ? '+' : ''}${scostamentoPercent.toFixed(1)}%`}>
+{pesoIdeale.toFixed(1)} kg
+<br />
+<span className="text-xs italic text-gray-600">
+  ({scostamento >= 0 ? '+' : ''}{scostamentoPercent.toFixed(1)}%)
+</span>
+<div className="w-32 h-2 bg-gray-200 rounded mt-1 overflow-hidden">
+  <div
+    className={`h-full ${Math.abs(scostamentoPercent) > 10 ? 'bg-red-500' : Math.abs(scostamentoPercent) > 5 ? 'bg-yellow-400' : 'bg-green-500'}`}
+    style={{
+      width: `${Math.min(Math.abs(scostamentoPercent), 100)}%`,
+      marginLeft: scostamentoPercent < 0 ? `${100 - Math.min(Math.abs(scostamentoPercent), 100)}%` : '0',
+      transition: 'width 0.3s ease'
+    }}
+    title={`Scostamento visivo: ${scostamentoPercent.toFixed(1)}%`}
+  ></div>
+</div>
+      </span>
+    );
+  })()}
+</div>
+
+    <div>
+      <strong>🔥 Fabb. giornaliero:</strong> {fabbisogni?.fabbisogno_calorico || 0} kcal
+    </div>
+  </div>
+</div>
         {/* Grid Layout per giorni, pasti e alimenti */}
-        <GridLayout
-          className="layout"
-          cols={4}
-          rowHeight={50}
-          width={1000}
-          isResizable
-          layout={layout}
-          onLayoutChange={(newLayout) => {
-            setLayout(newLayout);
-            localStorage.setItem('dietaLayout', JSON.stringify(newLayout));
-          }}
-          draggableHandle=".dragHandle"
-        >
-          {giorniDefault.map((dayLabel, dayIndex) => {
-            const tot = totalPerGiorno(dieta[dayIndex]);
-            const perc = confrontoGiornaliero(tot, fabbisogni);
-            return (
-              <div key={dayIndex} className="bg-white shadow rounded p-2 overflow-auto">
-                <div className="text-sm font-bold dragHandle cursor-move">
-                  {`Giorno ${dayIndex + 1}`}
-                  {fabbisogni && (() => {
-                    const nutrienti = [
-                      { nome: 'Calorie', val: tot.kcal, ref: fabbisogni.fabbisogno_calorico },
-                      { nome: 'Proteine', val: tot.proteine, ref: fabbisogni.proteine },
-                      { nome: 'Grassi', val: tot.grassi, ref: fabbisogni.grassi },
-                      { nome: 'Carboidrati', val: tot.carboidrati, ref: fabbisogni.carboidrati },
-                    ];
-                    const badgeClass = (perc) => {
-                      if (perc < 95) return 'bg-red-100 text-red-800 border border-red-300';
-                      if (perc > 105) return 'bg-yellow-100 text-yellow-800 border border-yellow-300';
-                      return 'bg-green-100 text-green-800 border border-green-300';
-                    };
-                    const emoji = (perc) => {
-                      if (perc < 95) return '🔴';
-                      if (perc > 105) return '🟡';
-                      return '🟢';
-                    };
-                    return (
-                      <div className="text-xs mt-1 flex flex-wrap gap-1">
-                        <div className="text-[10px] text-gray-500 mt-1">
-                          <span className="font-semibold">Legenda:</span>{' '}
-                          <span className="inline-block mr-2">🟢 = OK (95–105%)</span>
-                          <span className="inline-block mr-2">🟡 = Eccesso (&gt;105%)</span>
-                          <span className="inline-block mr-2">🔴 = Carenza (&lt;95%)</span>
-                        </div>
-                        {nutrienti.map((n, i) => {
-                          const percValue = n.ref && n.ref > 0 ? ((n.val / n.ref) * 100).toFixed(0) : '–';
-                          const percNum = parseFloat(percValue);
-                          const colore = badgeClass(percNum);
-                          const icona = emoji(percNum);
-                          return (
-                            <div key={i} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${colore}`}>
-                              {icona} {n.nome}: {percValue}%
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div className="text-xs bg-gray-100 mt-1 p-1 rounded">
-                  Totale: {tot.kcal.toFixed(1)} kcal – {tot.proteine.toFixed(1)}g prot. – {tot.grassi.toFixed(1)}g grassi – {tot.carboidrati.toFixed(1)}g carb.
-                </div>
-                {pasti.map((meal, mealIndex) => (
-                  <div key={mealIndex} className="mt-2">
-                    <button
-                      onClick={() => {
-                        const updated = [...openMeals];
-                        updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
-                        setOpenMeals(updated);
-                      }}
-                      className="bg-gray-200 text-left px-2 py-1 rounded w-full"
-                    >
-                      {meal}
-                    </button>
-                    {openMeals[dayIndex][mealIndex] && (
-                      <>
-                        <input
-                          type="text"
-                          placeholder="Cerca alimento..."
-                          className="border p-1 rounded w-full mt-1"
-                          value={searchValues[dayIndex][mealIndex]}
-                          onChange={(e) => {
-                            const updatedSearch = [...searchValues];
-                            updatedSearch[dayIndex][mealIndex] = e.target.value;
-                            setSearchValues(updatedSearch);
-                          }}
-                        />
-                        <table className="w-full text-xs my-2">
-                          <thead>
-                            <tr>
-                              <th>Nome</th>
-                              <th>Kcal</th>
-                              <th>Gr</th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {foods
-                              .filter(f =>
-                                f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
-                              )
-                              .slice(0, 3)
-                              .map(food => (
-                                <tr key={food.id}>
-                                  <td>{food.nome}</td>
-                                  <td>{food.energia_kcal}</td>
-                                  <td>
-                                    <input
-                                      type="number"
-                                      className="border p-1 w-16 text-xs"
-                                      placeholder="gr"
-                                      defaultValue="100"
-onChange={(e) => {
-  const quantitaVal = parseFloat(e.target.value) || 100;
-  setGramInput(prev => ({
-    ...prev,
-    [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
-  }));
-}}
-/>
+<div className="mb-4 overflow-x-auto">
+  <div className="flex gap-2 min-w-[650px] w-max px-2">
+    {giorniDefault.map((dayLabel, index) => (
+      <button
+        key={index}
+        onClick={() => setTabAttivo(index)}
+        className={`whitespace-nowrap px-4 py-1 rounded-full border text-sm transition-all duration-150 ${
+          tabAttivo === index
+            ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+            : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
+        }`}
+      >
+        {dayLabel}
+      </button>
+    ))}
+  </div>
+</div>
 
-                                  </td>
-                                  <td>
-                                    <button
-                                      onClick={() => handleAddFood(dayIndex, mealIndex, food)}
-                                      className="bg-green-500 text-white px-2 py-1 rounded text-xs"
-                                    >
-                                      +
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                          </tbody>
-                        </table>
-                        <ul className="text-xs list-disc pl-4">
-                          {dieta[dayIndex][mealIndex].map((food, idx) => (
-<li key={idx}>
-  {food.nome} – {food.quantita || 100} g
-                              <button
-                                onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
-                                className="ml-2 text-red-500"
-                              >
-                                ✕
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </GridLayout>
+
+<div className="bg-white shadow rounded p-4">
+  {/* CONTENUTO GIORNO ATTIVO */}
+  {(() => {
+    const dayIndex = tabAttivo;
+    const tot = totalPerGiorno(dieta[dayIndex]);
+    const perc = confrontoGiornaliero(tot, fabbisogni);
+
+    return (
+      <>
+        <div className="text-sm font-bold mb-2">
+          Giorno {dayIndex + 1}
+        </div>
+        <div className="text-xs bg-gray-100 mb-2 p-1 rounded">
+          Totale: {tot.kcal.toFixed(1)} kcal – {tot.proteine.toFixed(1)}g prot. – {tot.grassi.toFixed(1)}g grassi – {tot.carboidrati.toFixed(1)}g carb.
+        </div>
+
+        {pasti.map((meal, mealIndex) => (
+          <div key={mealIndex} className="mb-3">
+<div key={mealIndex} className="mt-2 border rounded shadow-sm overflow-hidden">
+  <button
+    onClick={() => {
+      const updated = [...openMeals];
+      updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
+      setOpenMeals(updated);
+    }}
+    className={`w-full text-left px-3 py-2 font-medium text-sm flex justify-between items-center ${
+      openMeals[dayIndex][mealIndex] ? 'bg-blue-100' : 'bg-gray-100'
+    }`}
+  >
+    {meal}
+    <span className="text-xs">{openMeals[dayIndex][mealIndex] ? '▲' : '▼'}</span>
+  </button>
+
+<AnimatePresence initial={false}>
+  {openMeals[dayIndex][mealIndex] && (
+    <motion.div
+      key={`${dayIndex}-${mealIndex}`}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3 }}
+      className="overflow-hidden p-3"
+    >
+      <input
+        type="text"
+        placeholder="🔍 Cerca alimento..."
+        className="border px-3 py-2 rounded w-full mt-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+        value={searchValues[dayIndex][mealIndex]}
+        onChange={(e) => {
+          const updatedSearch = [...searchValues];
+          updatedSearch[dayIndex][mealIndex] = e.target.value;
+          setSearchValues(updatedSearch);
+        }}
+        autoComplete="off"
+      />
+      <table className="w-full text-xs my-2">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Kcal</th>
+            <th>Gr</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {foods
+            .filter(f =>
+              f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
+            )
+            .slice(0, 3)
+            .map(food => (
+              <tr key={food.id}>
+                <td>{food.nome}</td>
+                <td>{food.energia_kcal}</td>
+                <td>
+                  <input
+                    type="number"
+                    className="border p-1 w-16 text-xs"
+                    placeholder="gr"
+                    defaultValue="100"
+                    onChange={(e) => {
+                      const quantitaVal = parseFloat(e.target.value) || 100;
+                      setGramInput(prev => ({
+                        ...prev,
+                        [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
+                      }));
+                    }}
+                  />
+                </td>
+                <td>
+                  <button
+                    onClick={() => handleAddFood(dayIndex, mealIndex, food)}
+                    className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+                  >
+                    +
+                  </button>
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+      <ul className="text-xs list-disc pl-4">
+        {dieta[dayIndex][mealIndex].map((food, idx) => (
+          <li key={idx}>
+            {food.nome} – {food.quantita || 100} g
+            <button
+              onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
+              className="ml-2 text-red-500"
+            >
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
+    </motion.div>
+  )}
+</AnimatePresence>
+
+
+</div>
+
+          </div>
+        ))}
+      </>
+    );
+  })()}
+</div>
+{tabAttivo === 7 && (
+  <div className="bg-white shadow rounded p-6 text-sm">
+    <h2 className="text-lg font-bold mb-4">📈 Calcolo Fabbisogni Giornalieri</h2>
+
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block mb-1 font-medium">⚖️ Peso (kg)</label>
+        <input
+          type="number"
+          className="border rounded w-full px-3 py-1"
+          value={peso || ''}
+          onChange={(e) => setPeso(parseFloat(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-medium">📏 Altezza (cm)</label>
+        <input
+          type="number"
+          className="border rounded w-full px-3 py-1"
+          value={selectedPaziente?.altezza || ''}
+          readOnly
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-medium">🚻 Sesso</label>
+        <input
+          type="text"
+          readOnly
+          value={(() => {
+            const cf = selectedPaziente?.codice_fiscale || '';
+            const giorno = parseInt(cf.slice(9, 11));
+            return giorno > 31 ? 'F' : 'M';
+          })()}
+          className="border rounded w-full px-3 py-1 bg-gray-100"
+        />
+      </div>
+
+      <div>
+        <label className="block mb-1 font-medium">🎂 Età</label>
+        <input
+          type="text"
+          readOnly
+          value={(() => {
+            const cf = selectedPaziente?.codice_fiscale || '';
+            const anno = parseInt(cf.slice(6, 8));
+            const secolo = anno < 25 ? 2000 : 1900;
+            const annoCompleto = secolo + anno;
+            const oggi = new Date();
+            return oggi.getFullYear() - annoCompleto;
+          })()}
+          className="border rounded w-full px-3 py-1 bg-gray-100"
+        />
+      </div>
+
+      <div className="col-span-2">
+        <label className="block mb-1 font-medium">🏃 Attività fisica</label>
+        <select
+          className="border rounded w-full px-3 py-1"
+          value={visitaCollegata?.attivita_fisica || 'sedentario'}
+          onChange={(e) =>
+            setVisitaCollegata((prev) => ({
+              ...prev,
+              attivita_fisica: e.target.value,
+            }))
+          }
+        >
+          <option value="sedentario">Sedentario</option>
+          <option value="leggero">Leggero</option>
+          <option value="moderato">Moderato</option>
+          <option value="intenso">Intenso</option>
+        </select>
+      </div>
+    </div>
+
+    <div className="mt-6">
+      <button
+        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={() => {
+          // Inserisci qui la logica di calcolo fabbisogno e salvataggio se vuoi
+          alert('🚧 Calcolo fabbisogni da implementare qui.');
+        }}
+      >
+        ⚙️ Calcola fabbisogno
+      </button>
+    </div>
+  </div>
+)}
+
+
       </div>
     </div>
   );
@@ -868,6 +1039,23 @@ function suggerisciAlimenti(totali, fabbisogni) {
 
   return suggerimenti;
 }
+
+function categoriaBMI(bmi) {
+  if (!bmi) return '-';
+  if (bmi < 18.5) return 'Sottopeso';
+  if (bmi < 25) return 'Normale';
+  if (bmi < 30) return 'Sovrappeso';
+  return 'Obeso';
+}
+
+function coloreBMI(bmi) {
+  if (!bmi) return '';
+  if (bmi < 18.5) return 'text-blue-600';
+  if (bmi < 25) return 'text-green-600';
+  if (bmi < 30) return 'text-yellow-500';
+  return 'text-red-600';
+}
+
 
 function calcolaFabbisogniGiornalieri(fabbisogni) {
   if (!fabbisogni) return null;
