@@ -234,60 +234,6 @@ router.get('/:id_paziente', async (req, res) => {
   }
 });
 
-// PUT /api/diete/:id/collega-visita
-router.put('/:id/collega-visita', async (req, res) => {
-  const { id } = req.params;
-  const { id_visita } = req.body;
 
-  if (!id_visita) {
-    return res.status(400).json({ success: false, error: 'id_visita mancante' });
-  }
-
-  try {
-    const result = await db.run(
-      `UPDATE diete SET id_visita = ? WHERE id = ?`,
-      [id_visita, id]
-    );
-
-    if (result.changes === 0) {
-      return res.status(404).json({ success: false, error: 'Dieta non trovata' });
-    }
-
-    res.json({ success: true, message: 'Visita collegata correttamente' });
-  } catch (err) {
-    console.error('Errore nel collegamento visita:', err.message);
-    res.status(500).json({ success: false, error: 'Errore interno server' });
-  }
-});
-
-// GET /api/diete/:id
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const dieta = await db.get(`
-      SELECT 
-        d.id, 
-        d.nome, 
-        d.paziente_id,
-        d.sub_index,
-        d.data_creazione,
-        d.id_visita,
-        v.data AS visita_data
-      FROM diete d
-      LEFT JOIN visite v ON d.id_visita = v.id
-      WHERE d.id = ?
-    `, [id]);
-
-    if (!dieta) {
-      return res.status(404).json({ success: false, error: 'Dieta non trovata' });
-    }
-
-    res.json({ success: true, data: dieta });
-  } catch (err) {
-    console.error('Errore nel recupero dieta:', err.message);
-    res.status(500).json({ success: false, error: 'Errore interno server' });
-  }
-});
 
 module.exports = router;
