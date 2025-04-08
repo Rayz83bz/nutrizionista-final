@@ -290,4 +290,32 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
+// GET /api/diete - Elenco completo di tutte le diete
+router.get('/', async (req, res) => {
+  try {
+    const diete = await db.all(`
+      SELECT 
+        d.id,
+        d.nome,
+        d.paziente_id,
+        p.nome AS nome_paziente,
+        p.cognome AS cognome_paziente,
+        d.sub_index,
+        d.data_creazione,
+        d.id_visita,
+        v.data AS visita_data
+      FROM diete d
+      LEFT JOIN pazienti p ON d.paziente_id = p.id
+      LEFT JOIN visite v ON d.id_visita = v.id
+      ORDER BY d.data_creazione DESC
+    `);
+
+    res.json({ success: true, data: diete });
+  } catch (err) {
+    console.error('Errore nel recupero lista diete:', err.message);
+    res.status(500).json({ success: false, error: 'Errore interno server' });
+  }
+});
+
 module.exports = router;
