@@ -21,6 +21,7 @@ import Progressi from './pages/Progressi/Index';
 import Index from './pages/Dieta/Index';
 import DietaForm from './pages/Dieta/Form';
 import Dieta from './pages/Dieta/Index';
+import ListaDietePaziente from './pages/Dieta/Lista';
 
 // Visite, fabbisogni e avanzati
 import Fabbisogni from './pages/Fabbisogni/Fabbisogni'; // e non Index o Form
@@ -88,6 +89,7 @@ function App() {
             <Route path="/ricette" element={<Ricette />} />
             <Route path="/piani" element={<Piani />} />
 <Route path="/dieta/:id?" element={<Dieta />} />
+<Route path="/diete/paziente/:idPaziente" element={<ListaDietePaziente />} />
 
             {/* 📈 Progressi e Visite */}
             <Route path="/progressi" element={<Progressi />} />

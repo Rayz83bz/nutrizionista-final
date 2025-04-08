@@ -1,9 +1,6 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import {
-  FaHome, FaUtensils, FaAppleAlt,
-  FaUserFriends, FaCalculator, FaCog, FaUserCircle, FaNotesMedical
-} from 'react-icons/fa';
+import { FaHome, FaUtensils, FaAppleAlt, FaUserFriends, FaCalculator, FaCog, FaUserCircle, FaNotesMedical, FaListAlt } from 'react-icons/fa';
 import { usePaziente } from '../App';
 
 export default function Layout() {
@@ -35,9 +32,16 @@ const menuItems = [
   { to: '/dati-evolutivi', icon: <FaUserCircle />, label: 'Dati Evolutivi' },
   { to: '/alimenti', icon: <FaAppleAlt />, label: 'Database Alimenti', libero: true },
   { to: '/diete', icon: <FaUtensils />, label: 'Diete' },
+  pazienteAttivo && {
+    to: `/diete/paziente/${pazienteAttivo.id}`,
+    icon: <FaListAlt />,
+    label: 'Diete Paziente',
+    libero: false
+  },
   { to: '/fabbisogni', icon: <FaCalculator />, label: 'Fabbisogni' },
   { to: '/impostazioni', icon: <FaCog />, label: 'Impostazioni', libero: true }
-];
+].filter(Boolean); // ← utile per rimuovere voci "false" se paziente non attivo
+
 
   return (
     <div className="flex h-screen overflow-hidden">

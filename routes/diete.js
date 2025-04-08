@@ -160,20 +160,38 @@ router.put('/:id', validateDieta, async (req, res) => {
 
 // ❌ Elimina dieta
 router.delete('/:id', async (req, res) => {
-  const id = req.params.id;
+  const dietaId = req.params.id;
+
   try {
-    const exists = await db.get(`SELECT id FROM diete WHERE id = ?`, [id]);
-    if (!exists) {
-      return res.status(404).json({ success: false, error: { code: "NOT_FOUND", message: "Dieta non trovata" } });
+    // Recupera gli ID dei giorni collegati alla dieta
+    const giorni = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
+
+    for (const giorno of giorni) {
+      // Recupera gli ID dei pasti per ogni giorno
+      const pasti = await db.all(`SELECT id FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
+
+      for (const pasto of pasti) {
+        // Elimina alimenti collegati a ciascun pasto
+        await db.run(`DELETE FROM alimenti_dieta WHERE id_pasto = ?`, [pasto.id]);
+      }
+
+      // Elimina i pasti del giorno
+      await db.run(`DELETE FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
     }
 
-    await db.run(`DELETE FROM diete WHERE id = ?`, [id]);
-    res.status(200).json({ success: true, message: "Dieta eliminata" });
-  } catch (err) {
-    console.error("Errore eliminazione dieta:", err);
-    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore eliminazione dieta" } });
+    // Elimina i giorni della dieta
+    await db.run(`DELETE FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
+
+    // Infine elimina la dieta
+    await db.run(`DELETE FROM diete WHERE id = ?`, [dietaId]);
+
+    res.json({ success: true, message: 'Dieta e contenuti eliminati con successo' });
+  } catch (error) {
+    console.error('Errore eliminazione dieta:', error.message);
+    res.status(500).json({ success: false, error: 'Errore interno durante l\'eliminazione' });
   }
 });
+
 
 // 🔍 Recupera una singola dieta completa (giorni → pasti → alimenti)
 // 🔍 Recupera una singola dieta per ID (con struttura completa)

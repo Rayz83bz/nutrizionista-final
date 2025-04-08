@@ -1,29 +1,71 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { usePaziente } from '../../App';
+import toast from 'react-hot-toast';
 
 export default function ListaDietePaziente() {
-  const { idPaziente } = useParams();
+  const { pazienteAttivo } = usePaziente();
   const [diete, setDiete] = useState([]);
-  const [paziente, setPaziente] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`/api/diete`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          const filtrate = data.data.filter(d => d.paziente_id === parseInt(idPaziente));
-          setDiete(filtrate);
-          if (filtrate.length > 0) {
-            setPaziente(`${filtrate[0].nome_paziente} ${filtrate[0].cognome_paziente}`);
+    if (pazienteAttivo?.id) {
+      fetch(`http://localhost:5000/api/diete/${pazienteAttivo.id}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.diete)) {
+            setDiete(data.diete);
+          } else {
+            toast.error('Errore nel caricamento delle diete');
           }
-        }
+        })
+        .catch(() => toast.error('Errore di rete nel caricamento delle diete'));
+    }
+  }, [pazienteAttivo]);
+
+  const handleCreaDieta = async () => {
+    if (!pazienteAttivo?.id) return;
+
+    const payload = {
+      pazienteId: pazienteAttivo.id,
+      nome_dieta: `Dieta ${new Date().toLocaleDateString()}`,
+      fabbisogni: {},
+      giorni: []
+    };
+
+    try {
+      const res = await fetch('http://localhost:5000/api/diete/salva', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-  }, [idPaziente]);
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success('✅ Dieta creata con successo!');
+        setDiete(prev => [...prev, { id: data.id, ...payload }]);
+      } else {
+        toast.error('Errore nella creazione della dieta');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Errore durante la creazione');
+    }
+  };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Diete di {paziente || '...'}</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-semibold">
+          Diete di {pazienteAttivo?.nome?.toUpperCase() || '...'}
+        </h2>
+        <button
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          onClick={handleCreaDieta}
+        >
+          ➕ Crea nuova dieta
+        </button>
+      </div>
 
       {diete.length === 0 ? (
         <p className="text-gray-500">Nessuna dieta trovata per questo paziente.</p>
@@ -38,7 +80,8 @@ export default function ListaDietePaziente() {
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-lg font-semibold">
-                    {dieta.nome} {dieta.sub_index ? `-${String.fromCharCode(96 + dieta.sub_index + 1)}` : ''}
+                    {dieta.nome_dieta || dieta.nome}
+                    {dieta.sub_index ? `-${String.fromCharCode(96 + dieta.sub_index + 1)}` : ''}
                   </h2>
                   <p className="text-sm text-gray-600">
                     Creata il {new Date(dieta.data_creazione).toLocaleDateString()}
