@@ -34,23 +34,25 @@ function validateDieta(req, res, next) {
 
 // 🔄 Salva nuova dieta
 router.post('/salva', validateDieta, async (req, res) => {
-  const { nome_dieta, giorni, id_visita } = req.body;
+  const { nome_dieta, giorni, id_visita, paziente_id } = req.body;
 
-  if (!id_visita || isNaN(id_visita)) {
-    return res.status(400).json({ success: false, error: { code: "INVALID_VISITA", message: "ID visita non valido" } });
+  if (!paziente_id) {
+    return res.status(400).json({ success: false, error: "ID paziente mancante" });
   }
+
+  const idVisitaFinale = (!id_visita || isNaN(id_visita)) ? null : id_visita;
 
   try {
     await db.run('BEGIN TRANSACTION');
 
-    const subResult = await db.get(`SELECT MAX(sub_index) as max_sub FROM diete WHERE id_visita = ?`, [id_visita]);
+    const subResult = await db.get(`SELECT MAX(sub_index) as max_sub FROM diete WHERE paziente_id = ?`, [paziente_id]);
     const sub_index = subResult?.max_sub !== null ? subResult.max_sub + 1 : 0;
     const now = new Date().toISOString();
 
     const result = await db.run(
-      `INSERT INTO diete (id_visita, nome, sub_index, data_creazione)
-       VALUES (?, ?, ?, ?)`,
-      [id_visita, nome_dieta, sub_index, now]
+      `INSERT INTO diete (paziente_id, id_visita, nome, sub_index, data_creazione)
+       VALUES (?, ?, ?, ?, ?)`,
+      [paziente_id, idVisitaFinale, nome_dieta, sub_index, now]
     );
 
     const dietaId = result.lastID;
@@ -95,10 +97,7 @@ router.post('/salva', validateDieta, async (req, res) => {
 router.put('/:id', validateDieta, async (req, res) => {
   const dietaId = req.params.id;
   const { nome_dieta, giorni, id_visita } = req.body;
-
-  if (!id_visita || isNaN(id_visita)) {
-    return res.status(400).json({ success: false, error: { code: "INVALID_VISITA", message: "ID visita non valido" } });
-  }
+  const idVisitaFinale = (!id_visita || isNaN(id_visita)) ? null : id_visita;
 
   try {
     await db.run('BEGIN TRANSACTION');
@@ -109,7 +108,7 @@ router.put('/:id', validateDieta, async (req, res) => {
       `UPDATE diete
        SET nome = ?, data_creazione = ?, id_visita = ?
        WHERE id = ?`,
-      [nome_dieta, now, id_visita, dietaId]
+      [nome_dieta, now, idVisitaFinale, dietaId]
     );
 
     const giorniExist = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
@@ -163,26 +162,19 @@ router.delete('/:id', async (req, res) => {
   const dietaId = req.params.id;
 
   try {
-    // Recupera gli ID dei giorni collegati alla dieta
     const giorni = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
 
     for (const giorno of giorni) {
-      // Recupera gli ID dei pasti per ogni giorno
       const pasti = await db.all(`SELECT id FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
 
       for (const pasto of pasti) {
-        // Elimina alimenti collegati a ciascun pasto
         await db.run(`DELETE FROM alimenti_dieta WHERE id_pasto = ?`, [pasto.id]);
       }
 
-      // Elimina i pasti del giorno
       await db.run(`DELETE FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
     }
 
-    // Elimina i giorni della dieta
     await db.run(`DELETE FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
-
-    // Infine elimina la dieta
     await db.run(`DELETE FROM diete WHERE id = ?`, [dietaId]);
 
     res.json({ success: true, message: 'Dieta e contenuti eliminati con successo' });
@@ -192,9 +184,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-
-// 🔍 Recupera una singola dieta completa (giorni → pasti → alimenti)
-// 🔍 Recupera una singola dieta per ID (con struttura completa)
+// 🔍 Recupera una dieta con giorni, pasti, alimenti
 router.get('/dettaglio/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -202,7 +192,7 @@ router.get('/dettaglio/:id', async (req, res) => {
     const dieta = await db.get(`
       SELECT d.*, v.id_paziente
       FROM diete d
-      JOIN visite v ON d.id_visita = v.id
+      LEFT JOIN visite v ON d.id_visita = v.id
       WHERE d.id = ?
     `, [id]);
 
@@ -232,7 +222,6 @@ router.get('/dettaglio/:id', async (req, res) => {
   }
 });
 
-
 // 📄 Tutte le diete di un paziente
 router.get('/:id_paziente', async (req, res) => {
   const { id_paziente } = req.params;
@@ -240,8 +229,8 @@ router.get('/:id_paziente', async (req, res) => {
     const sql = `
       SELECT d.*
       FROM diete d
-      JOIN visite v ON d.id_visita = v.id
-      WHERE v.id_paziente = ?
+      LEFT JOIN visite v ON d.id_visita = v.id
+      WHERE d.paziente_id = ?
       ORDER BY d.data_creazione DESC
     `;
     const result = await db.all(sql, [id_paziente]);
@@ -252,7 +241,7 @@ router.get('/:id_paziente', async (req, res) => {
   }
 });
 
-// PUT /api/diete/:id/collega-visita
+// 🔗 Collega dieta a visita (PUT)
 router.put('/:id/collega-visita', async (req, res) => {
   const { id } = req.params;
   const { id_visita } = req.body;
@@ -278,7 +267,7 @@ router.put('/:id/collega-visita', async (req, res) => {
   }
 });
 
-// GET /api/diete/:id
+// 🔍 Singola dieta con dati visita
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
 
@@ -308,8 +297,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-
-// GET /api/diete - Elenco completo di tutte le diete
+// 🔍 Tutte le diete
 router.get('/', async (req, res) => {
   try {
     const diete = await db.all(`

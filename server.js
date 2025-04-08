@@ -34,3 +34,12 @@ const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`✅ Server in ascolto sulla porta ${PORT}`);
 });
+
+const path = require('path');
+
+// Serve il frontend React
+app.use(express.static(path.join(__dirname, 'frontend', 'dist')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
+});
