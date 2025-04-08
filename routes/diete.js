@@ -2,28 +2,47 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// Middleware di validazione dieta
+/* ----------------------------------------------------------------------------
+   Middleware di validazione dieta
+   Verifica che:
+   - nome_dieta sia presente e non vuoto
+   - giorni sia un array non vuoto
+   - ogni giorno abbia almeno un pasto
+   - ogni pasto, se contiene alimenti, li abbia con quantità > 0
+---------------------------------------------------------------------------- */
 function validateDieta(req, res, next) {
   const { nome_dieta, giorni } = req.body;
 
   if (!nome_dieta?.trim()) {
-    return res.status(400).json({ success: false, error: { code: "INVALID_INPUT", message: "Nome dieta obbligatorio" } });
+    return res.status(400).json({ 
+      success: false, 
+      error: { code: "INVALID_INPUT", message: "Nome dieta obbligatorio" } 
+    });
   }
 
   if (!Array.isArray(giorni) || giorni.length === 0) {
-    return res.status(400).json({ success: false, error: { code: "INVALID_INPUT", message: "Devi inserire almeno un giorno" } });
+    return res.status(400).json({ 
+      success: false, 
+      error: { code: "INVALID_INPUT", message: "Devi inserire almeno un giorno" } 
+    });
   }
 
   for (const giorno of giorni) {
     if (!Array.isArray(giorno.pasti) || giorno.pasti.length === 0) {
-      return res.status(400).json({ success: false, error: { code: "INVALID_INPUT", message: "Ogni giorno deve avere almeno un pasto" } });
+      return res.status(400).json({ 
+        success: false, 
+        error: { code: "INVALID_INPUT", message: "Ogni giorno deve avere almeno un pasto" }
+      });
     }
 
     for (const pasto of giorno.pasti) {
       if (!Array.isArray(pasto.alimenti)) continue;
       for (const alimento of pasto.alimenti) {
         if (!alimento.alimento_id || alimento.grammi <= 0) {
-          return res.status(400).json({ success: false, error: { code: "INVALID_GRAMMI", message: "Ogni alimento deve avere quantità > 0" } });
+          return res.status(400).json({ 
+            success: false, 
+            error: { code: "INVALID_GRAMMI", message: "Ogni alimento deve avere quantità > 0" }
+          });
         }
       }
     }
@@ -32,7 +51,15 @@ function validateDieta(req, res, next) {
   next();
 }
 
-// POST /api/diete/salva
+/* ----------------------------------------------------------------------------
+   POST /api/diete/salva
+   Crea una nuova dieta.
+   Il payload deve contenere:
+     - nome_dieta (string)
+     - paziente_id (number) obbligatorio
+     - giorni (array) con struttura completa (ogni giorno con pasti e alimenti)
+   Il campo id_visita è facoltativo (se non presente, viene salvato come NULL)
+---------------------------------------------------------------------------- */
 router.post('/salva', validateDieta, async (req, res) => {
   const { nome_dieta, giorni, id_visita, paziente_id } = req.body;
 
@@ -45,7 +72,11 @@ router.post('/salva', validateDieta, async (req, res) => {
   try {
     await db.run('BEGIN TRANSACTION');
 
-    const subResult = await db.get(`SELECT MAX(sub_index) as max_sub FROM diete WHERE paziente_id = ?`, [paziente_id]);
+    // Calcola il sub_index per il paziente
+    const subResult = await db.get(
+      `SELECT MAX(sub_index) as max_sub FROM diete WHERE paziente_id = ?`, 
+      [paziente_id]
+    );
     const sub_index = subResult?.max_sub !== null ? subResult.max_sub + 1 : 0;
     const now = new Date().toISOString();
 
@@ -57,6 +88,7 @@ router.post('/salva', validateDieta, async (req, res) => {
 
     const dietaId = result.lastID;
 
+    // Inserisci i giorni, pasti e alimenti
     for (const giorno of giorni) {
       const giornoRes = await db.run(
         `INSERT INTO giorni_dieta (id_dieta, giorno_index, note)
@@ -89,11 +121,17 @@ router.post('/salva', validateDieta, async (req, res) => {
   } catch (err) {
     await db.run('ROLLBACK');
     console.error('❌ Errore salvataggio dieta:', err);
-    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore salvataggio dieta" } });
+    res.status(500).json({ 
+      success: false, 
+      error: { code: "SERVER_ERROR", message: "Errore salvataggio dieta" } 
+    });
   }
 });
 
-// PUT /api/diete/:id
+/* ----------------------------------------------------------------------------
+   PUT /api/diete/:id
+   Aggiorna una dieta esistente, sostituendo tutti i giorni, pasti e alimenti.
+---------------------------------------------------------------------------- */
 router.put('/:id', validateDieta, async (req, res) => {
   const dietaId = req.params.id;
   const { nome_dieta, giorni, id_visita } = req.body;
@@ -101,16 +139,14 @@ router.put('/:id', validateDieta, async (req, res) => {
 
   try {
     await db.run('BEGIN TRANSACTION');
-
     const now = new Date().toISOString();
 
     await db.run(
-      `UPDATE diete
-       SET nome = ?, data_creazione = ?, id_visita = ?
-       WHERE id = ?`,
+      `UPDATE diete SET nome = ?, data_creazione = ?, id_visita = ? WHERE id = ?`,
       [nome_dieta, now, idVisitaFinale, dietaId]
     );
 
+    // Elimina i giorni esistenti e relativi pasti e alimenti
     const giorniExist = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
     for (const g of giorniExist) {
       const pastiExist = await db.all(`SELECT id FROM pasti_dieta WHERE id_giorno = ?`, [g.id]);
@@ -121,6 +157,7 @@ router.put('/:id', validateDieta, async (req, res) => {
     }
     await db.run(`DELETE FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
 
+    // Inserisce i nuovi giorni, pasti e alimenti
     for (const giorno of giorni) {
       const giornoRes = await db.run(
         `INSERT INTO giorni_dieta (id_dieta, giorno_index, note)
@@ -153,17 +190,22 @@ router.put('/:id', validateDieta, async (req, res) => {
   } catch (err) {
     await db.run('ROLLBACK');
     console.error('❌ Errore aggiornamento dieta:', err);
-    res.status(500).json({ success: false, error: { code: "SERVER_ERROR", message: "Errore aggiornamento dieta" } });
+    res.status(500).json({ 
+      success: false, 
+      error: { code: "SERVER_ERROR", message: "Errore aggiornamento dieta" } 
+    });
   }
 });
 
-// DELETE /api/diete/:id
+/* ----------------------------------------------------------------------------
+   DELETE /api/diete/:id
+   Elimina una dieta ed elimina in cascade i giorni, pasti e alimenti associati.
+---------------------------------------------------------------------------- */
 router.delete('/:id', async (req, res) => {
   const dietaId = req.params.id;
 
   try {
     const giorni = await db.all(`SELECT id FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
-
     for (const giorno of giorni) {
       const pasti = await db.all(`SELECT id FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
       for (const pasto of pasti) {
@@ -171,7 +213,6 @@ router.delete('/:id', async (req, res) => {
       }
       await db.run(`DELETE FROM pasti_dieta WHERE id_giorno = ?`, [giorno.id]);
     }
-
     await db.run(`DELETE FROM giorni_dieta WHERE id_dieta = ?`, [dietaId]);
     await db.run(`DELETE FROM diete WHERE id = ?`, [dietaId]);
 
@@ -182,7 +223,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET /api/diete/dettaglio/:id
+/* ----------------------------------------------------------------------------
+   GET /api/diete/dettaglio/:id
+   Recupera una dieta completa con i suoi giorni, pasti e alimenti.
+---------------------------------------------------------------------------- */
 router.get('/dettaglio/:id', async (req, res) => {
   const id = req.params.id;
 
@@ -197,10 +241,8 @@ router.get('/dettaglio/:id', async (req, res) => {
     if (!dieta) return res.status(404).json({ error: 'Dieta non trovata' });
 
     const giorni = await db.all(`SELECT * FROM giorni_dieta WHERE id_dieta = ?`, [id]);
-
     for (const g of giorni) {
       g.pasti = await db.all(`SELECT * FROM pasti_dieta WHERE id_giorno = ?`, [g.id]);
-
       for (const p of g.pasti) {
         p.alimenti = await db.all(`SELECT * FROM alimenti_dieta WHERE id_pasto = ?`, [p.id]);
       }
@@ -213,7 +255,10 @@ router.get('/dettaglio/:id', async (req, res) => {
   }
 });
 
-// GET /api/diete/:id_paziente
+/* ----------------------------------------------------------------------------
+   GET /api/diete/:id_paziente
+   Recupera tutte le diete di un determinato paziente.
+---------------------------------------------------------------------------- */
 router.get('/:id_paziente', async (req, res) => {
   const { id_paziente } = req.params;
   try {
@@ -232,7 +277,10 @@ router.get('/:id_paziente', async (req, res) => {
   }
 });
 
-// PUT /api/diete/:id/collega-visita
+/* ----------------------------------------------------------------------------
+   PUT /api/diete/:id/collega-visita
+   Collega una dieta a una visita esistente.
+---------------------------------------------------------------------------- */
 router.put('/:id/collega-visita', async (req, res) => {
   const { id } = req.params;
   const { id_visita } = req.body;
@@ -246,7 +294,6 @@ router.put('/:id/collega-visita', async (req, res) => {
     if (result.changes === 0) {
       return res.status(404).json({ success: false, error: 'Dieta non trovata' });
     }
-
     res.json({ success: true, message: 'Visita collegata correttamente' });
   } catch (err) {
     console.error('Errore nel collegamento visita:', err.message);
@@ -254,15 +301,26 @@ router.put('/:id/collega-visita', async (req, res) => {
   }
 });
 
-// GET /api/diete
-// Esempio con paginazione
+/* ----------------------------------------------------------------------------
+   GET /api/diete
+   Recupera tutte le diete con informazioni sui pazienti e la data della visita, con paginazione.
+---------------------------------------------------------------------------- */
 router.get('/', async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const offset = parseInt(req.query.offset) || 0;
 
   try {
     const diete = await db.all(`
-      SELECT d.*, p.nome AS nome_paziente, p.cognome AS cognome_paziente, v.data AS visita_data
+      SELECT 
+        d.id,
+        d.nome,
+        d.paziente_id,
+        p.nome AS nome_paziente,
+        p.cognome AS cognome_paziente,
+        d.sub_index,
+        d.data_creazione,
+        d.id_visita,
+        v.data AS visita_data
       FROM diete d
       LEFT JOIN pazienti p ON d.paziente_id = p.id
       LEFT JOIN visite v ON d.id_visita = v.id
@@ -272,9 +330,9 @@ router.get('/', async (req, res) => {
 
     res.json({ success: true, data: diete });
   } catch (err) {
-    res.status(500).json({ success: false, error: 'Errore interno' });
+    console.error('Errore nel recupero lista diete:', err.message);
+    res.status(500).json({ success: false, error: 'Errore interno server' });
   }
 });
-
 
 module.exports = router;

@@ -23,35 +23,10 @@ export default function ListaDietePaziente() {
     }
   }, [pazienteAttivo]);
 
-  const handleCreaDieta = async () => {
-    if (!pazienteAttivo?.id) return;
-
-    const payload = {
-      pazienteId: pazienteAttivo.id,
-      nome_dieta: `Dieta ${new Date().toLocaleDateString()}`,
-      fabbisogni: {},
-      giorni: []
-    };
-
-    try {
-      const res = await fetch('http://localhost:5000/api/diete/salva', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        toast.success('✅ Dieta creata con successo!');
-        setDiete(prev => [...prev, { id: data.id, ...payload }]);
-      } else {
-        toast.error('Errore nella creazione della dieta');
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Errore durante la creazione');
-    }
-  };
+const handleCreaDieta = () => {
+  if (!pazienteAttivo?.id) return;
+  navigate(`/dieta?nuova=1`);
+};
 
   return (
     <div className="p-6">

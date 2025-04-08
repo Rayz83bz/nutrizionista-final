@@ -19,8 +19,6 @@ export default function Index() {
   const fromVisita = new URLSearchParams(location.search).get('fromVisita');
   const edit = new URLSearchParams(location.search).get('edit');
 
-const nuova = new URLSearchParams(location.search).get('nuova');
-
   const [foods, setFoods] = useState([]);
   const [visitaCollegata, setVisitaCollegata] = useState(null);
   const [dieta, setDieta] = useState(giorniDefault.map(() => pasti.map(() => [])));
@@ -39,9 +37,9 @@ const nuova = new URLSearchParams(location.search).get('nuova');
   const [nomeDieta, setNomeDieta] = useState('');
 
   useEffect(() => {
-if (!fromVisita && !edit && !nuova) {
-  navigate('/diete/form');
-}
+    if (!fromVisita && !edit) {
+      navigate('/diete/form');
+    }
   }, [fromVisita, edit, navigate]);
 
   useEffect(() => {
