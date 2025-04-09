@@ -15,11 +15,19 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
 export default function Index() {
   const { id } = useParams();
   const location = useLocation();
-  const navigate = useNavigate();
-  const fromVisita = new URLSearchParams(location.search).get('fromVisita');
-  const edit = new URLSearchParams(location.search).get('edit');
-const [peso, setPeso] = useState(null);
+const edit = new URLSearchParams(location.search).get('edit');
 const nuova = new URLSearchParams(location.search).get('nuova');
+  const navigate = useNavigate();
+  useEffect(() => {
+  if (id && !edit && !nuova) {
+    // Se stai entrando direttamente nella dieta (es. /dieta/9) e non c'è già un edit o nuova
+    navigate(`/dieta?edit=${id}`, { replace: true });
+  }
+}, [id, edit, nuova, navigate]);
+
+  const fromVisita = new URLSearchParams(location.search).get('fromVisita');
+
+const [peso, setPeso] = useState(null);
 const [tabAttivo, setTabAttivo] = useState(0);
 const [modificaPeso, setModificaPeso] = useState(false);
 
@@ -39,6 +47,7 @@ const [modificaPeso, setModificaPeso] = useState(false);
   const [dieteSalvate, setDieteSalvate] = useState([]);
   const [showDieteSalvate, setShowDieteSalvate] = useState(false);
   const [nomeDieta, setNomeDieta] = useState('');
+const [modificaAttiva, setModificaAttiva] = useState(false);
 
   useEffect(() => {
 if (!fromVisita && !edit && !nuova && location.pathname === '/dieta') {
@@ -592,12 +601,23 @@ const pesoIdeale = selectedPaziente?.altezza
               </button>
             )}
           </div>
-          <button
-            onClick={handleSalvaDieta}
-            className={`px-3 py-1 rounded shadow text-sm text-white ${dietaSelezionata ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'}`}
-          >
-            {dietaSelezionata ? '🔁 Aggiorna dieta' : '💾 Salva dieta'}
-          </button>
+{dietaSelezionata && !modificaAttiva ? (
+  <button
+    onClick={() => setModificaAttiva(true)}
+    className="px-3 py-1 rounded shadow text-sm bg-yellow-400 text-black hover:bg-yellow-500"
+  >
+    ✏️ Modifica
+  </button>
+) : (
+  <button
+    onClick={handleSalvaDieta}
+    className={`px-3 py-1 rounded shadow text-sm text-white ${dietaSelezionata ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+    disabled={!modificaAttiva}
+    title={!modificaAttiva ? 'Premi "Modifica" per abilitare' : ''}
+  >
+    {dietaSelezionata ? '🔁 Aggiorna dieta' : '💾 Salva dieta'}
+  </button>
+)}
         </div>
 {/* Parametri paziente e fabbisogni */}
 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm shadow-sm">
@@ -703,7 +723,7 @@ const pesoIdeale = selectedPaziente?.altezza
     </div>
   </div>
 </div>
-        {/* Grid Layout per giorni, pasti e alimenti */}
+{/* Grid Layout per giorni, pasti e alimenti */}
 <div className="mb-4 overflow-x-auto">
   <div className="flex gap-2 min-w-[650px] w-max px-2">
     {giorniDefault.map((dayLabel, index) => (
@@ -722,134 +742,133 @@ const pesoIdeale = selectedPaziente?.altezza
   </div>
 </div>
 
+{/* CONTENUTO GIORNO ATTIVO */}
+{tabAttivo < 7 && (
+  <div className="bg-white shadow rounded p-4">
+    {(() => {
+      const dayIndex = tabAttivo;
+      const tot = totalPerGiorno(dieta[dayIndex]);
+      const perc = confrontoGiornaliero(tot, fabbisogni);
 
-<div className="bg-white shadow rounded p-4">
-  {/* CONTENUTO GIORNO ATTIVO */}
-  {(() => {
-    const dayIndex = tabAttivo;
-    const tot = totalPerGiorno(dieta[dayIndex]);
-    const perc = confrontoGiornaliero(tot, fabbisogni);
-
-    return (
-      <>
-        <div className="text-sm font-bold mb-2">
-          Giorno {dayIndex + 1}
-        </div>
-        <div className="text-xs bg-gray-100 mb-2 p-1 rounded">
-          Totale: {tot.kcal.toFixed(1)} kcal – {tot.proteine.toFixed(1)}g prot. – {tot.grassi.toFixed(1)}g grassi – {tot.carboidrati.toFixed(1)}g carb.
-        </div>
-
-        {pasti.map((meal, mealIndex) => (
-          <div key={mealIndex} className="mb-3">
-<div key={mealIndex} className="mt-2 border rounded shadow-sm overflow-hidden">
-  <button
-    onClick={() => {
-      const updated = [...openMeals];
-      updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
-      setOpenMeals(updated);
-    }}
-    className={`w-full text-left px-3 py-2 font-medium text-sm flex justify-between items-center ${
-      openMeals[dayIndex][mealIndex] ? 'bg-blue-100' : 'bg-gray-100'
-    }`}
-  >
-    {meal}
-    <span className="text-xs">{openMeals[dayIndex][mealIndex] ? '▲' : '▼'}</span>
-  </button>
-
-<AnimatePresence initial={false}>
-  {openMeals[dayIndex][mealIndex] && (
-    <motion.div
-      key={`${dayIndex}-${mealIndex}`}
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.3 }}
-      className="overflow-hidden p-3"
-    >
-      <input
-        type="text"
-        placeholder="🔍 Cerca alimento..."
-        className="border px-3 py-2 rounded w-full mt-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-        value={searchValues[dayIndex][mealIndex]}
-        onChange={(e) => {
-          const updatedSearch = [...searchValues];
-          updatedSearch[dayIndex][mealIndex] = e.target.value;
-          setSearchValues(updatedSearch);
-        }}
-        autoComplete="off"
-      />
-      <table className="w-full text-xs my-2">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Kcal</th>
-            <th>Gr</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {foods
-            .filter(f =>
-              f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
-            )
-            .slice(0, 3)
-            .map(food => (
-              <tr key={food.id}>
-                <td>{food.nome}</td>
-                <td>{food.energia_kcal}</td>
-                <td>
-                  <input
-                    type="number"
-                    className="border p-1 w-16 text-xs"
-                    placeholder="gr"
-                    defaultValue="100"
-                    onChange={(e) => {
-                      const quantitaVal = parseFloat(e.target.value) || 100;
-                      setGramInput(prev => ({
-                        ...prev,
-                        [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
-                      }));
-                    }}
-                  />
-                </td>
-                <td>
-                  <button
-                    onClick={() => handleAddFood(dayIndex, mealIndex, food)}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-xs"
-                  >
-                    +
-                  </button>
-                </td>
-              </tr>
-            ))}
-        </tbody>
-      </table>
-      <ul className="text-xs list-disc pl-4">
-        {dieta[dayIndex][mealIndex].map((food, idx) => (
-          <li key={idx}>
-            {food.nome} – {food.quantita || 100} g
-            <button
-              onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
-              className="ml-2 text-red-500"
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
-  )}
-</AnimatePresence>
-
-
-</div>
-
+      return (
+        <>
+          <div className="text-sm font-bold mb-2">
+            Giorno {dayIndex + 1}
           </div>
-        ))}
-      </>
-    );
-  })()}
-</div>
+          <div className="text-xs bg-gray-100 mb-2 p-1 rounded">
+            Totale: {tot.kcal.toFixed(1)} kcal – {tot.proteine.toFixed(1)}g prot. – {tot.grassi.toFixed(1)}g grassi – {tot.carboidrati.toFixed(1)}g carb.
+          </div>
+
+          {pasti.map((meal, mealIndex) => (
+            <div key={mealIndex} className="mb-3">
+              <div className="mt-2 border rounded shadow-sm overflow-hidden">
+                <button
+                  onClick={() => {
+                    const updated = [...openMeals];
+                    updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
+                    setOpenMeals(updated);
+                  }}
+                  className={`w-full text-left px-3 py-2 font-medium text-sm flex justify-between items-center ${
+                    openMeals[dayIndex][mealIndex] ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}
+                >
+                  {meal}
+                  <span className="text-xs">{openMeals[dayIndex][mealIndex] ? '▲' : '▼'}</span>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {openMeals[dayIndex][mealIndex] && (
+                    <motion.div
+                      key={`${dayIndex}-${mealIndex}`}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden p-3"
+                    >
+                      <input
+                        type="text"
+                        placeholder="🔍 Cerca alimento..."
+                        className="border px-3 py-2 rounded w-full mt-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        value={searchValues[dayIndex][mealIndex]}
+                        onChange={(e) => {
+                          const updatedSearch = [...searchValues];
+                          updatedSearch[dayIndex][mealIndex] = e.target.value;
+                          setSearchValues(updatedSearch);
+                        }}
+                        autoComplete="off"
+                      />
+                      <table className="w-full text-xs my-2">
+                        <thead>
+                          <tr>
+                            <th>Nome</th>
+                            <th>Kcal</th>
+                            <th>Gr</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {foods
+                            .filter(f =>
+                              f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
+                            )
+                            .slice(0, 3)
+                            .map(food => (
+                              <tr key={food.id}>
+                                <td>{food.nome}</td>
+                                <td>{food.energia_kcal}</td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    className="border p-1 w-16 text-xs"
+                                    placeholder="gr"
+                                    defaultValue="100"
+                                    onChange={(e) => {
+                                      const quantitaVal = parseFloat(e.target.value) || 100;
+                                      setGramInput(prev => ({
+                                        ...prev,
+                                        [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
+                                      }));
+                                    }}
+                                  />
+                                </td>
+                                <td>
+                                  <button
+                                    onClick={() => handleAddFood(dayIndex, mealIndex, food)}
+                                    className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+                                  >
+                                    +
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                      <ul className="text-xs list-disc pl-4">
+                        {dieta[dayIndex][mealIndex].map((food, idx) => (
+                          <li key={idx}>
+                            {food.nome} – {food.quantita || 100} g
+                            <button
+                              onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
+                              className="ml-2 text-red-500"
+                            >
+                              ✕
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          ))}
+        </>
+      );
+    })()}
+  </div>
+)}
+
 {tabAttivo === 7 && (
   <div className="bg-white shadow rounded p-6 text-sm">
     <h2 className="text-lg font-bold mb-4">📈 Calcolo Fabbisogni Giornalieri</h2>
@@ -927,15 +946,59 @@ const pesoIdeale = selectedPaziente?.altezza
     </div>
 
     <div className="mt-6">
-      <button
-        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        onClick={() => {
-          // Inserisci qui la logica di calcolo fabbisogno e salvataggio se vuoi
-          alert('🚧 Calcolo fabbisogni da implementare qui.');
-        }}
-      >
-        ⚙️ Calcola fabbisogno
-      </button>
+<button
+  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+  onClick={() => {
+    const altezza = selectedPaziente?.altezza;
+    const pesoCorrente = peso || visitaCollegata?.peso;
+    const cf = selectedPaziente?.codice_fiscale || '';
+    const giorno = parseInt(cf.slice(9, 11));
+    const sesso = giorno > 31 ? 'F' : 'M';
+    const anno = parseInt(cf.slice(6, 8));
+    const secolo = anno < 25 ? 2000 : 1900;
+    const annoCompleto = secolo + anno;
+    const oggi = new Date();
+    const eta = oggi.getFullYear() - annoCompleto;
+    const attivita = visitaCollegata?.attivita_fisica || 'sedentario';
+
+    if (!altezza || !pesoCorrente || !eta) {
+      alert('⚠️ Inserisci altezza, peso e data di nascita.');
+      return;
+    }
+
+    // Calcolo BMR con Mifflin-St Jeor
+    const bmr =
+      sesso === 'M'
+        ? 10 * pesoCorrente + 6.25 * altezza - 5 * eta + 5
+        : 10 * pesoCorrente + 6.25 * altezza - 5 * eta - 161;
+
+    const fattori = {
+      sedentario: 1.2,
+      leggero: 1.375,
+      moderato: 1.55,
+      intenso: 1.725,
+    };
+
+    const fabbisogno_calorico = Math.round(bmr * (fattori[attivita] || 1.2));
+
+    // Macronutrienti: 15% prot, 25% grassi, 60% carb
+    const proteine = Math.round((0.15 * fabbisogno_calorico) / 4);
+    const grassi = Math.round((0.25 * fabbisogno_calorico) / 9);
+    const carboidrati = Math.round((0.60 * fabbisogno_calorico) / 4);
+
+    setFabbisogni({
+      fabbisogno_calorico,
+      proteine,
+      grassi,
+      carboidrati,
+    });
+
+    toast.success('✅ Fabbisogni calcolati correttamente!');
+  }}
+>
+  ⚙️ Calcola fabbisogno
+</button>
+
     </div>
   </div>
 )}
