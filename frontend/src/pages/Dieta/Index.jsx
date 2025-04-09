@@ -48,6 +48,10 @@ const [modificaPeso, setModificaPeso] = useState(false);
   const [showDieteSalvate, setShowDieteSalvate] = useState(false);
   const [nomeDieta, setNomeDieta] = useState('');
 const [modificaAttiva, setModificaAttiva] = useState(false);
+const [modalitaCompatta, setModalitaCompatta] = useState(
+  localStorage.getItem('modalitaCompatta') === 'true'
+);
+
 
   useEffect(() => {
 if (!fromVisita && !edit && !nuova && location.pathname === '/dieta') {
@@ -55,6 +59,11 @@ if (!fromVisita && !edit && !nuova && location.pathname === '/dieta') {
 }
 
   }, [fromVisita, edit, navigate]);
+
+useEffect(() => {
+  localStorage.setItem('modalitaCompatta', modalitaCompatta);
+}, [modalitaCompatta]);
+
 
   useEffect(() => {
     const salvato = localStorage.getItem('pazienteAttivo');
@@ -431,7 +440,7 @@ const pesoIdeale = selectedPaziente?.altezza
   return (
     <div className="flex gap-6 p-4">
       {/* Colonna sinistra: Riepilogo e Totali */}
-      <div className="w-64 sticky top-4 bg-gray-100 p-4 rounded shadow text-xs">
+<div className="w-64 sticky top-4 bg-gray-100 p-3 rounded shadow text-xs max-h-[calc(100vh-2rem)] overflow-y-auto">
         <h2 className="font-bold mb-2">Totali Settimanali:</h2>
         <p className={evidenzia(totalSettimana.kcal, fabbisogni?.fabbisogno_calorico * 7)}>
           Calorie: {totalSettimana.kcal.toFixed(1)} kcal
@@ -665,8 +674,8 @@ const pesoIdeale = selectedPaziente?.altezza
 
         </div>
 {/* Parametri paziente e fabbisogni */}
-<div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm shadow-sm">
-  <div className="flex flex-wrap justify-between gap-3">
+<div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2 text-sm shadow-sm">
+<div className="flex flex-wrap justify-between gap-2">
     <div>
       <strong>📏 Altezza:</strong> {selectedPaziente?.altezza || '-'} cm
     </div>
@@ -769,13 +778,13 @@ const pesoIdeale = selectedPaziente?.altezza
   </div>
 </div>
 {/* Grid Layout per giorni, pasti e alimenti */}
-<div className="mb-4 overflow-x-auto">
-  <div className="flex gap-2 min-w-[650px] w-max px-2">
+<div className="mb-2 flex justify-between items-center px-2">
+  <div className="flex gap-2 overflow-x-auto">
     {giorniDefault.map((dayLabel, index) => (
       <button
         key={index}
         onClick={() => setTabAttivo(index)}
-        className={`whitespace-nowrap px-4 py-1 rounded-full border text-sm transition-all duration-150 ${
+        className={`whitespace-nowrap px-${modalitaCompatta ? '3' : '4'} py-${modalitaCompatta ? '1' : '2'} rounded-full border text-sm transition-all duration-150 ${
           tabAttivo === index
             ? 'bg-blue-600 text-white border-blue-600 shadow-md'
             : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
@@ -785,7 +794,17 @@ const pesoIdeale = selectedPaziente?.altezza
       </button>
     ))}
   </div>
+
+  <div className="text-sm flex items-center gap-2">
+    <input
+      type="checkbox"
+      checked={modalitaCompatta}
+      onChange={() => setModalitaCompatta(prev => !prev)}
+    />
+    <label>Modalità compatta</label>
+  </div>
 </div>
+
 
 {/* CONTENUTO GIORNO ATTIVO */}
 {tabAttivo < 7 && (
@@ -800,13 +819,13 @@ const pesoIdeale = selectedPaziente?.altezza
           <div className="text-sm font-bold mb-2">
             Giorno {dayIndex + 1}
           </div>
-          <div className="text-xs bg-gray-100 mb-2 p-1 rounded">
+          <div className="text-xs bg-gray-100 mb-1 p-1 rounded">
             Totale: {tot.kcal.toFixed(1)} kcal – {tot.proteine.toFixed(1)}g prot. – {tot.grassi.toFixed(1)}g grassi – {tot.carboidrati.toFixed(1)}g carb.
           </div>
 
           {pasti.map((meal, mealIndex) => (
-            <div key={mealIndex} className="mb-3">
-<div className={`mt-2 border rounded shadow-sm overflow-hidden ${
+            <div key={mealIndex} className="mb-2">
+<div className={`mt-1 border rounded shadow-sm overflow-hidden ${
   modificaAttiva ? 'border-red-400 ring-2 ring-red-200' : ''
 }`}>
 
