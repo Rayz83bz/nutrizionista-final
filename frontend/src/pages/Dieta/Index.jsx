@@ -319,6 +319,32 @@ console.log('ALIMENTI payload:', JSON.stringify(payload.giorni.flatMap(g => g.pa
       alert('❌ Errore durante l\'eliminazione della dieta.');
     }
   };
+  
+const handleSalvaFabbisogni = async () => {
+  if (!fabbisogni || !dietaSelezionata?.id) {
+    toast.error("⚠️ Nessuna dieta selezionata o fabbisogni mancanti.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/diete/fabbisogni/salva/${dietaSelezionata.id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...fabbisogni,
+        id_visita: fromVisita || null,
+      }),
+    });
+
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Errore salvataggio");
+
+    toast.success("✅ Fabbisogni salvati correttamente!");
+  } catch (err) {
+    console.error("❌ Errore salvataggio fabbisogni:", err);
+    toast.error("❌ Errore durante il salvataggio dei fabbisogni.");
+  }
+};
 
 const handleCaricaDieta = async (dietaSalvata) => {
   try {
@@ -475,8 +501,20 @@ const pesoIdeale = selectedPaziente?.altezza
             <Tooltip />
           </PieChart>
         </ResponsiveContainer>
-        <div className="text-[10px] text-gray-500">
-          <strong>Suggerimenti:</strong>
+        <div className="text-[11px] text-gray-700 space-y-2 mt-2">
+		        {fabbisogni && (
+          <div className="mt-2 pt-2 text-[10px] border-t border-gray-300">
+            <div className="font-semibold text-gray-600 mb-1 mt-2">📊 Fabbisogni settimanali</div>
+            <ul className="list-disc pl-4 mt-1">
+              <li>Calorie: {(fabbisogni.fabbisogno_calorico * 7).toFixed(0)} kcal</li>
+              <li>Proteine: {(fabbisogni.proteine * 7).toFixed(1)} g</li>
+              <li>Grassi: {(fabbisogni.grassi * 7).toFixed(1)} g</li>
+              <li>Carboidrati: {(fabbisogni.carboidrati * 7).toFixed(1)} g</li>
+              <li className="italic text-gray-400 mt-1">* Percentuali forzate su 7 giorni</li>
+            </ul>
+          </div>
+        )}
+          <div className="font-semibold text-gray-600 mb-1 mt-2">🧠 Suggerimenti nutrizionali</div>
           <ul className="list-disc pl-4">
             {fabbisogni ? (
               suggerisciAlimenti(totalSettimana, fabbisogni).map((sugg, idx) => (
@@ -487,23 +525,6 @@ const pesoIdeale = selectedPaziente?.altezza
             )}
           </ul>
         </div>
-        <div className="mt-4 border-t pt-2">
-          <button onClick={handleResetLayout} className="bg-red-500 text-white px-2 py-1 rounded text-xs w-full">
-            🔄 Reset Layout
-          </button>
-        </div>
-        {fabbisogni && (
-          <div className="mt-4 border-t pt-2 text-[10px]">
-            <strong>Fabbisogni settimanali (riferimento):</strong>
-            <ul className="list-disc pl-4 mt-1">
-              <li>Calorie: {(fabbisogni.fabbisogno_calorico * 7).toFixed(0)} kcal</li>
-              <li>Proteine: {(fabbisogni.proteine * 7).toFixed(1)} g</li>
-              <li>Grassi: {(fabbisogni.grassi * 7).toFixed(1)} g</li>
-              <li>Carboidrati: {(fabbisogni.carboidrati * 7).toFixed(1)} g</li>
-              <li className="italic text-gray-400 mt-1">* Percentuali forzate su 7 giorni</li>
-            </ul>
-          </div>
-        )}
       </div>
 
       {/* Colonna destra: Gestione e Lista diete */}
@@ -513,7 +534,7 @@ const pesoIdeale = selectedPaziente?.altezza
             {dietaSelezionata && (
               <div className="space-y-2">
                 <div className="text-sm text-red-600 font-bold">
-                  📝<span className="underline">{dietaSelezionata.nome_dieta}</span>
+                  📝 <span className="underline">{dietaSelezionata.nome_dieta}</span>
                 </div>
 				{modificaAttiva && (
   <div className="text-xs font-semibold bg-yellow-100 border border-yellow-300 text-yellow-800 px-2 py-1 inline-block rounded mt-1">
@@ -1025,6 +1046,14 @@ const pesoIdeale = selectedPaziente?.altezza
 >
   ⚙️ Calcola fabbisogno
 </button>
+<div className="mt-2">
+  <button
+    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+    onClick={handleSalvaFabbisogni}
+  >
+    💾 Salva fabbisogni
+  </button>
+</div>
 
     </div>
   </div>
