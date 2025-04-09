@@ -513,8 +513,14 @@ const pesoIdeale = selectedPaziente?.altezza
             {dietaSelezionata && (
               <div className="space-y-2">
                 <div className="text-sm text-red-600 font-bold">
-                  📝 Modifica attiva: <span className="underline">{dietaSelezionata.nome_dieta}</span>
+                  📝<span className="underline">{dietaSelezionata.nome_dieta}</span>
                 </div>
+				{modificaAttiva && (
+  <div className="text-xs font-semibold bg-yellow-100 border border-yellow-300 text-yellow-800 px-2 py-1 inline-block rounded mt-1">
+    🛠 Modalità modifica attiva
+  </div>
+)}
+
                 {visitaCollegata && (
                   <div className="text-xs bg-blue-50 border border-blue-200 p-2 rounded">
                     <strong>Visita collegata:</strong><br />
@@ -601,23 +607,41 @@ const pesoIdeale = selectedPaziente?.altezza
               </button>
             )}
           </div>
-{dietaSelezionata && !modificaAttiva ? (
-  <button
-    onClick={() => setModificaAttiva(true)}
-    className="px-3 py-1 rounded shadow text-sm bg-yellow-400 text-black hover:bg-yellow-500"
-  >
-    ✏️ Modifica
-  </button>
+{dietaSelezionata ? (
+  <>
+    {!modificaAttiva ? (
+      <button
+        onClick={() => setModificaAttiva(true)}
+        className="px-3 py-1 rounded shadow text-sm bg-yellow-400 text-black hover:bg-yellow-500 mr-2"
+      >
+        ✏️ Modifica
+      </button>
+    ) : (
+      <div className="flex gap-2">
+        <button
+          onClick={() => setModificaAttiva(false)}
+          className="px-3 py-1 rounded shadow text-sm bg-gray-300 text-black hover:bg-gray-400"
+        >
+          ❌ Annulla
+        </button>
+        <button
+          onClick={handleSalvaDieta}
+          className="px-3 py-1 rounded shadow text-sm text-white bg-yellow-500 hover:bg-yellow-600"
+        >
+          🔁 Aggiorna dieta
+        </button>
+      </div>
+    )}
+  </>
 ) : (
   <button
     onClick={handleSalvaDieta}
-    className={`px-3 py-1 rounded shadow text-sm text-white ${dietaSelezionata ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'}`}
-    disabled={!modificaAttiva}
-    title={!modificaAttiva ? 'Premi "Modifica" per abilitare' : ''}
+    className="px-3 py-1 rounded shadow text-sm bg-blue-600 hover:bg-blue-700 text-white"
   >
-    {dietaSelezionata ? '🔁 Aggiorna dieta' : '💾 Salva dieta'}
+    💾 Salva dieta
   </button>
 )}
+
         </div>
 {/* Parametri paziente e fabbisogni */}
 <div className="bg-blue-50 border border-blue-200 rounded p-3 mb-4 text-sm shadow-sm">
@@ -761,7 +785,10 @@ const pesoIdeale = selectedPaziente?.altezza
 
           {pasti.map((meal, mealIndex) => (
             <div key={mealIndex} className="mb-3">
-              <div className="mt-2 border rounded shadow-sm overflow-hidden">
+<div className={`mt-2 border rounded shadow-sm overflow-hidden ${
+  modificaAttiva ? 'border-red-400 ring-2 ring-red-200' : ''
+}`}>
+
                 <button
                   onClick={() => {
                     const updated = [...openMeals];

@@ -335,4 +335,59 @@ router.get('/', async (req, res) => {
   }
 });
 
+
+
+
+
+router.get('/fabbisogni/:id_dieta', async (req, res) => {
+  const { id_dieta } = req.params;
+  try {
+    const fab = await db.get(
+      `SELECT * FROM fabbisogni WHERE id_dieta = ?`,
+      [id_dieta]
+    );
+    if (!fab) {
+      return res.status(404).json({ success: false, error: 'Fabbisogni non trovati' });
+    }
+    res.json(fab);
+  } catch (err) {
+    console.error('❌ Errore recupero fabbisogni:', err.message);
+    res.status(500).json({ success: false, error: 'Errore interno' });
+  }
+});
+
+
+router.post('/fabbisogni/salva/:id_dieta', async (req, res) => {
+  const { id_dieta } = req.params;
+  const { fabbisogno_calorico, proteine, carboidrati, grassi, note = null, id_visita = null } = req.body;
+
+  if (!id_dieta || isNaN(parseInt(id_dieta))) {
+    return res.status(400).json({ success: false, error: 'ID dieta mancante o non valido' });
+  }
+
+  try {
+    const existing = await db.get(`SELECT id FROM fabbisogni WHERE id_dieta = ?`, [id_dieta]);
+
+    if (existing) {
+      await db.run(
+        `UPDATE fabbisogni
+         SET fabbisogno_calorico = ?, proteine = ?, carboidrati = ?, grassi = ?, note = ?, id_visita = ?
+         WHERE id_dieta = ?`,
+        [fabbisogno_calorico, proteine, carboidrati, grassi, note, id_visita, id_dieta]
+      );
+    } else {
+      await db.run(
+        `INSERT INTO fabbisogni (id_dieta, id_visita, fabbisogno_calorico, proteine, carboidrati, grassi, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id_dieta, id_visita, fabbisogno_calorico, proteine, carboidrati, grassi, note]
+      );
+    }
+
+    res.json({ success: true, message: 'Fabbisogni salvati con successo' });
+  } catch (err) {
+    console.error('❌ Errore salvataggio fabbisogni:', err.message);
+    res.status(500).json({ success: false, error: 'Errore interno' });
+  }
+});
+
 module.exports = router;
