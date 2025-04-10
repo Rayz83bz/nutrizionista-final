@@ -41,7 +41,7 @@ export default function ListaDietePaziente() {
 
       const doc = new jsPDF();
       doc.setFontSize(14);
-      doc.text(`Dieta: ${dieta.nome_dieta || dieta.nome}`, 10, 15);
+      doc.text(`Dieta: ${dieta.nome_dieta || dieta.nome || 'Senza Nome'}`, 10, 15);
       doc.setFontSize(10);
       doc.text(`Paziente: ${pazienteAttivo?.nome || 'N/A'} ${pazienteAttivo?.cognome || ''}`, 10, 22);
       doc.text(`Data creazione: ${new Date(dieta.data_creazione).toLocaleDateString()}`, 10, 27);
@@ -49,7 +49,7 @@ export default function ListaDietePaziente() {
 const alimentiDB = await fetch('http://localhost:5000/api/database-alimenti').then(r => r.json());
 
 json.data.giorni.forEach((giorno, giornoIndex) => {
-  if (giornoIndex !== 0) doc.addPage(); // solo dalla seconda pagina in poi
+  if (giornoIndex !== 0) doc.addPage();
   doc.setFontSize(12);
   doc.text(`Giorno ${giornoIndex + 1}`, 10, 15);
 
@@ -58,8 +58,12 @@ json.data.giorni.forEach((giorno, giornoIndex) => {
   giorno.pasti.forEach((pasto) => {
     const alimenti = pasto.alimenti || [];
     if (alimenti.length > 0) {
+      doc.setFontSize(10);
+      doc.text(`🍽 ${pasto.nome_pasto}`, 10, currentY);
+      currentY += 6;
+
       autoTable(doc, {
-        head: [[`🍽 ${pasto.nome_pasto}`, 'Quantità (g)', 'Kcal', 'Proteine', 'Carboidrati', 'Grassi']],
+        head: [['Nome Alimento', 'Quantità (g)', 'Kcal', 'Proteine', 'Carboidrati', 'Grassi']],
         body: alimenti.map(al => {
           const alimentoDB = alimentiDB.find(f => f.id === al.alimento_id) || {};
           return [
@@ -73,12 +77,30 @@ json.data.giorni.forEach((giorno, giornoIndex) => {
         }),
         startY: currentY,
         styles: { fontSize: 9 },
+        margin: { left: 10, right: 10 },
         didDrawPage: (data) => {
           currentY = data.cursor.y + 5;
         }
       });
     }
   });
+
+  // 🔻 ORA puoi usare currentY, giorno, giornoIndex:
+  const totGiorno = giorno.pasti.reduce((acc, pasto) => {
+    return pasto.alimenti.reduce((tot, al) => ({
+      kcal: tot.kcal + (parseFloat(al.energia_kcal) || 0),
+      proteine: tot.proteine + (parseFloat(al.proteine) || 0),
+      grassi: tot.grassi + (parseFloat(al.lipidi_totali) || 0),
+      carboidrati: tot.carboidrati + (parseFloat(al.carboidrati) || 0)
+    }), acc);
+  }, { kcal: 0, proteine: 0, grassi: 0, carboidrati: 0 });
+
+  doc.setFontSize(10);
+  doc.text(
+    `Totale Giorno ${giornoIndex + 1}: ${totGiorno.kcal.toFixed(1)} kcal, ${totGiorno.proteine.toFixed(1)}g P, ${totGiorno.grassi.toFixed(1)}g G, ${totGiorno.carboidrati.toFixed(1)}g C`,
+    10,
+    currentY
+  );
 });
 
 
