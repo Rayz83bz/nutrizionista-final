@@ -46,8 +46,10 @@ export default function ListaDietePaziente() {
       doc.text(`Paziente: ${pazienteAttivo?.nome || 'N/A'} ${pazienteAttivo?.cognome || ''}`, 10, 22);
       doc.text(`Data creazione: ${new Date(dieta.data_creazione).toLocaleDateString()}`, 10, 27);
 
+const alimentiDB = await fetch('http://localhost:5000/api/database-alimenti').then(r => r.json());
+
 json.data.giorni.forEach((giorno, giornoIndex) => {
-  doc.addPage();
+  if (giornoIndex !== 0) doc.addPage(); // solo dalla seconda pagina in poi
   doc.setFontSize(12);
   doc.text(`Giorno ${giornoIndex + 1}`, 10, 15);
 
@@ -58,23 +60,27 @@ json.data.giorni.forEach((giorno, giornoIndex) => {
     if (alimenti.length > 0) {
       autoTable(doc, {
         head: [[`🍽 ${pasto.nome_pasto}`, 'Quantità (g)', 'Kcal', 'Proteine', 'Carboidrati', 'Grassi']],
-        body: alimenti.map(al => [
-          al.nome || '—',
-          al.quantita,
-          al.energia_kcal,
-          al.proteine,
-          al.carboidrati,
-          al.lipidi_totali
-        ]),
+        body: alimenti.map(al => {
+          const alimentoDB = alimentiDB.find(f => f.id === al.alimento_id) || {};
+          return [
+            alimentoDB.nome || al.nome || '—',
+            al.quantita,
+            al.energia_kcal,
+            al.proteine,
+            al.carboidrati,
+            al.lipidi_totali
+          ];
+        }),
         startY: currentY,
         styles: { fontSize: 9 },
         didDrawPage: (data) => {
-          currentY = data.cursor.y + 5; // aggiorna per il prossimo pasto
+          currentY = data.cursor.y + 5;
         }
       });
     }
   });
 });
+
 
 
       doc.save(`${dieta.nome_dieta || dieta.nome}.pdf`);

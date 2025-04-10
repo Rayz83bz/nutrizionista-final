@@ -72,34 +72,56 @@ useEffect(() => {
 }, [modalitaCompatta]);
 
 
-  useEffect(() => {
-    const salvato = localStorage.getItem('pazienteAttivo');
-    const paziente = salvato ? JSON.parse(salvato) : null;
+useEffect(() => {
+  const salvato = localStorage.getItem('pazienteAttivo');
+  const paziente = salvato ? JSON.parse(salvato) : null;
 
-    if (!paziente || !paziente.id) {
-      alert('⚠️ Devi selezionare un paziente attivo per proseguire.');
-      return;
+  if (!paziente || !paziente.id) {
+    alert('⚠️ Devi selezionare un paziente attivo per proseguire.');
+    return;
+  }
+
+  setSelectedPaziente(paziente);
+
+  // Carica alimenti
+  const caricaAlimenti = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/database-alimenti');
+      const data = await res.json();
+      setFoods(data);
+    } catch (err) {
+      console.error("❌ Errore nel caricamento degli alimenti:", err);
     }
+  };
+  caricaAlimenti();
 
-    setSelectedPaziente(paziente);
-    if (fromVisita) {
-      fetch(`http://localhost:5000/api/visite/${fromVisita}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.visita) {
-            setVisitaCollegata(data.visita);
-          }
-        })
-        .catch(err => console.error('❌ Errore caricamento visita collegata:', err));
-    }
-
-    fetch('http://localhost:5000/api/database-alimenti')
+  // Carica visita collegata (se presente)
+  if (fromVisita) {
+    fetch(`http://localhost:5000/api/visite/${fromVisita}`)
       .then(res => res.json())
-      .then(data => setFoods(data))
-      .catch(err => console.error("Errore alimenti:", err));
+      .then(data => {
+        if (data && data.visita) {
+          setVisitaCollegata(data.visita);
+        }
+      })
+      .catch(err => console.error('❌ Errore caricamento visita collegata:', err));
+  }
 
-    fetchDieteSalvate(paziente.id);
-  }, []);
+  // Carica diete salvate
+  fetchDieteSalvate(paziente.id);
+}, []);
+
+useEffect(() => {
+  if (
+    foods.length > 0 &&
+    edit &&
+    !dieta[0][0].length // evita doppio caricamento se dieta è già popolata
+  ) {
+    console.log("🧠 Carico dieta ora che foods è pronto...");
+    handleCaricaDieta({ id: edit });
+  }
+}, [foods, edit]);
+
 
   useEffect(() => {
     if (edit) {
@@ -362,6 +384,7 @@ const handleSalvaFabbisogni = async () => {
   }
 };
 
+
 const handleCaricaDieta = async (dietaSalvata) => {
   try {
     const res = await fetch(`http://localhost:5000/api/diete/dettaglio/${dietaSalvata.id}`);
@@ -372,11 +395,30 @@ const handleCaricaDieta = async (dietaSalvata) => {
       return;
     }
 
+    // Assicuriamoci che foods sia pronto
+    if (!foods || foods.length === 0) {
+      const resFoods = await fetch('http://localhost:5000/api/database-alimenti');
+      const dataFoods = await resFoods.json();
+      setFoods(dataFoods);
+      // Aspetta il prossimo tick prima di continuare
+if (foods.length > 0) {
+  handleCaricaDieta(dietaSalvata);
+} else {
+  const interval = setInterval(() => {
+    if (foods.length > 0) {
+      clearInterval(interval);
+      handleCaricaDieta(dietaSalvata);
+    }
+  }, 100);
+}
+    }
+
     const enrichedDieta = json.data.giorni.map(giorno =>
       giorno.pasti.map(pasto =>
         pasto.alimenti.map(al => {
           const food = foods.find(f => f.id === al.alimento_id);
-          if (!food) return null; // fallback se alimento mancante
+          if (!food) return null;
+
           const ratio = al.quantita / 100;
 
           return {
@@ -386,7 +428,7 @@ const handleCaricaDieta = async (dietaSalvata) => {
             proteine: +(food.proteine * ratio).toFixed(1),
             carboidrati: +(food.carboidrati * ratio).toFixed(1),
             lipidi_totali: +(food.lipidi_totali * ratio).toFixed(1),
-quantita: al.quantita,
+            quantita: al.quantita,
             note: al.note || ''
           };
         }).filter(Boolean)
@@ -396,13 +438,24 @@ quantita: al.quantita,
     setDieta(enrichedDieta);
     setDietaSelezionata({ id: json.data.id, nome_dieta: json.data.nome });
     if (json.data.fabbisogni) setFabbisogni(json.data.fabbisogni);
-	if ('peso' in json.data) setPeso(json.data.peso);
+    if ('peso' in json.data) setPeso(json.data.peso);
+
     alert('✅ Dieta caricata correttamente!');
   } catch (err) {
     console.error(err);
     alert('❌ Errore nel caricamento della dieta.');
   }
 };
+
+useEffect(() => {
+  // se foods è pronto e c'è una dieta selezionata da caricare
+  if (foods.length > 0 && dietaSelezionata?.id && !dieta[0][0].length) {
+    console.log("🧠 Carico dieta dopo che foods è pronto");
+    handleCaricaDieta(dietaSelezionata);
+  }
+}, [foods, dietaSelezionata]);
+
+
 const bmi = visitaCollegata?.peso && selectedPaziente?.altezza
   ? visitaCollegata.peso / Math.pow(selectedPaziente.altezza / 100, 2)
   : null;
