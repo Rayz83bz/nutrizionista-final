@@ -30,6 +30,7 @@ const nuova = new URLSearchParams(location.search).get('nuova');
 const [peso, setPeso] = useState(null);
 const [tabAttivo, setTabAttivo] = useState(0);
 const [modificaPeso, setModificaPeso] = useState(false);
+const [sidebarAperta, setSidebarAperta] = useState(true);
 
   const [foods, setFoods] = useState([]);
   const [visitaCollegata, setVisitaCollegata] = useState(null);
@@ -51,6 +52,12 @@ const [modificaAttiva, setModificaAttiva] = useState(false);
 const [modalitaCompatta, setModalitaCompatta] = useState(
   localStorage.getItem('modalitaCompatta') === 'true'
 );
+const [sidebarCollassata, setSidebarCollassata] = useState(
+  localStorage.getItem('sidebarCollassata') === 'true'
+);
+useEffect(() => {
+  localStorage.setItem('sidebarCollassata', sidebarCollassata);
+}, [sidebarCollassata]);
 
 
   useEffect(() => {
@@ -439,79 +446,98 @@ const pesoIdeale = selectedPaziente?.altezza
 
   return (
     <div className="flex gap-6 p-4">
-      {/* Colonna sinistra: Riepilogo e Totali */}
-<div className="w-64 sticky top-4 bg-gray-100 p-3 rounded shadow text-xs max-h-[calc(100vh-2rem)] overflow-y-auto">
-        <h2 className="font-bold mb-2">Totali Settimanali:</h2>
-        <p className={evidenzia(totalSettimana.kcal, fabbisogni?.fabbisogno_calorico * 7)}>
-          Calorie: {totalSettimana.kcal.toFixed(1)} kcal
-        </p>
-        <p className={evidenzia(totalSettimana.proteine, fabbisogni?.proteine * 7)}>
-          Proteine: {totalSettimana.proteine.toFixed(1)} g
-        </p>
-        <p className={evidenzia(totalSettimana.grassi, fabbisogni?.grassi * 7)}>
-          Grassi: {totalSettimana.grassi.toFixed(1)} g
-        </p>
-        <p className={evidenzia(totalSettimana.carboidrati, fabbisogni?.carboidrati * 7)}>
-          Carboidrati: {totalSettimana.carboidrati.toFixed(1)} g
-        </p>
-        <div className="mt-2 text-[11px] font-medium">
-          <div className="text-gray-500">Copertura settimanale:</div>
-          <ul className="ml-3 list-disc">
-            {fabbisogni && (
-              <>
-                {['kcal', 'proteine', 'grassi', 'carboidrati'].map((nutriente) => {
-                  const tot = totalSettimana[nutriente];
-                  const fab = fabbisogni[
-                    nutriente === 'kcal' ? 'fabbisogno_calorico' : nutriente
-                  ] * 7;
-                  const perc = ((tot / fab) * 100).toFixed(0);
-                  const percNum = parseFloat(perc);
-                  let colore = 'text-green-600';
-                  let simbolo = '🟢';
-                  if (percNum < 95) {
-                    colore = 'text-red-600';
-                    simbolo = '🔴';
-                  } else if (percNum > 105) {
-                    colore = 'text-yellow-600';
-                    simbolo = '🟡';
-                  }
-                  const labelMap = {
-                    kcal: 'Calorie',
-                    proteine: 'Proteine',
-                    grassi: 'Grassi',
-                    carboidrati: 'Carboidrati',
-                  };
-                  return (
-                    <li key={nutriente} className={`${colore} font-bold`}>
-                      {simbolo} {labelMap[nutriente]}: {perc}%
-                    </li>
-                  );
-                })}
-              </>
-            )}
-          </ul>
-        </div>
-        <ResponsiveContainer width="100%" height={150} className="my-4">
-          <PieChart>
-            <Pie
-              dataKey="value"
-              data={[
-                { name: 'Proteine', value: totalSettimana.proteine },
-                { name: 'Grassi', value: totalSettimana.grassi },
-                { name: 'Carboidrati', value: totalSettimana.carboidrati },
-              ]}
-              outerRadius={50}
-              label
-            >
-              {COLORS.map((color, index) => (
-                <Cell key={index} fill={color} />
-              ))}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="text-[11px] text-gray-700 space-y-2 mt-2">
-		        {fabbisogni && (
+{/* Colonna sinistra: Sidebar Totali (intelligente e riducibile) */}
+<div className={`${sidebarCollassata ? 'w-12' : (modalitaCompatta ? 'w-52 p-2' : 'w-64 p-3')} sticky top-4 bg-gray-100 rounded shadow text-xs max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300`}>
+  <button
+    onClick={() => setSidebarCollassata(prev => !prev)}
+    className="text-xs font-semibold text-blue-700 hover:underline mb-2 w-full text-left"
+    title={sidebarCollassata ? 'Mostra sidebar' : 'Nascondi sidebar'}
+  >
+    📊 Totali {sidebarCollassata ? '▶' : '▼'}
+  </button>
+
+  {sidebarCollassata ? (
+    <div className="flex flex-col items-center text-[10px] text-gray-600">
+      <div className="text-lg">📊</div>
+      <div className="font-bold text-blue-800">{totalSettimana.kcal.toFixed(0)} kcal</div>
+      <div className="text-green-600 text-[9px]">{totalSettimana.proteine.toFixed(0)}g P</div>
+      <div className="text-yellow-600 text-[9px]">{totalSettimana.grassi.toFixed(0)}g G</div>
+      <div className="text-blue-600 text-[9px]">{totalSettimana.carboidrati.toFixed(0)}g C</div>
+    </div>
+  ) : (
+    <>
+      <h2 className="font-bold mb-2">Totali Settimanali:</h2>
+      <p className={evidenzia(totalSettimana.kcal, fabbisogni?.fabbisogno_calorico * 7)}>
+        Calorie: {totalSettimana.kcal.toFixed(1)} kcal
+      </p>
+      <p className={evidenzia(totalSettimana.proteine, fabbisogni?.proteine * 7)}>
+        Proteine: {totalSettimana.proteine.toFixed(1)} g
+      </p>
+      <p className={evidenzia(totalSettimana.grassi, fabbisogni?.grassi * 7)}>
+        Grassi: {totalSettimana.grassi.toFixed(1)} g
+      </p>
+      <p className={evidenzia(totalSettimana.carboidrati, fabbisogni?.carboidrati * 7)}>
+        Carboidrati: {totalSettimana.carboidrati.toFixed(1)} g
+      </p>
+
+      <div className="mt-2 text-[11px] font-medium">
+        <div className="text-gray-500">Copertura settimanale:</div>
+        <ul className="ml-3 list-disc">
+          {fabbisogni && (
+            ['kcal', 'proteine', 'grassi', 'carboidrati'].map((nutriente) => {
+              const tot = totalSettimana[nutriente];
+              const fab = fabbisogni[
+                nutriente === 'kcal' ? 'fabbisogno_calorico' : nutriente
+              ] * 7;
+              const perc = ((tot / fab) * 100).toFixed(0);
+              const percNum = parseFloat(perc);
+              let colore = 'text-green-600';
+              let simbolo = '🟢';
+              if (percNum < 95) {
+                colore = 'text-red-600';
+                simbolo = '🔴';
+              } else if (percNum > 105) {
+                colore = 'text-yellow-600';
+                simbolo = '🟡';
+              }
+              const labelMap = {
+                kcal: 'Calorie',
+                proteine: 'Proteine',
+                grassi: 'Grassi',
+                carboidrati: 'Carboidrati',
+              };
+              return (
+                <li key={nutriente} className={`${colore} font-bold`}>
+                  {simbolo} {labelMap[nutriente]}: {perc}%
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </div>
+
+      <ResponsiveContainer width="100%" height={150} className="my-4">
+        <PieChart>
+          <Pie
+            dataKey="value"
+            data={[
+              { name: 'Proteine', value: totalSettimana.proteine },
+              { name: 'Grassi', value: totalSettimana.grassi },
+              { name: 'Carboidrati', value: totalSettimana.carboidrati },
+            ]}
+            outerRadius={50}
+            label
+          >
+            {COLORS.map((color, index) => (
+              <Cell key={index} fill={color} />
+            ))}
+          </Pie>
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+
+      <div className="text-[11px] text-gray-700 space-y-2 mt-2">
+        {fabbisogni && (
           <div className="mt-2 pt-2 text-[10px] border-t border-gray-300">
             <div className="font-semibold text-gray-600 mb-1 mt-2">📊 Fabbisogni settimanali</div>
             <ul className="list-disc pl-4 mt-1">
@@ -519,22 +545,24 @@ const pesoIdeale = selectedPaziente?.altezza
               <li>Proteine: {(fabbisogni.proteine * 7).toFixed(1)} g</li>
               <li>Grassi: {(fabbisogni.grassi * 7).toFixed(1)} g</li>
               <li>Carboidrati: {(fabbisogni.carboidrati * 7).toFixed(1)} g</li>
-              <li className="italic text-gray-400 mt-1">* Percentuali forzate su 7 giorni</li>
+              <li className="italic text-gray-400 mt-1">* Calcolati su base settimanale</li>
             </ul>
           </div>
         )}
-          <div className="font-semibold text-gray-600 mb-1 mt-2">🧠 Suggerimenti nutrizionali</div>
-          <ul className="list-disc pl-4">
-            {fabbisogni ? (
-              suggerisciAlimenti(totalSettimana, fabbisogni).map((sugg, idx) => (
-                <li key={idx}>{sugg}</li>
-              ))
-            ) : (
-              <li className="italic text-gray-400">Nessun suggerimento disponibile</li>
-            )}
-          </ul>
-        </div>
+        <div className="font-semibold text-gray-600 mb-1 mt-2">🧠 Suggerimenti</div>
+        <ul className="list-disc pl-4">
+          {fabbisogni ? (
+            suggerisciAlimenti(totalSettimana, fabbisogni).map((sugg, idx) => (
+              <li key={idx}>{sugg}</li>
+            ))
+          ) : (
+            <li className="italic text-gray-400">Nessun suggerimento disponibile</li>
+          )}
+        </ul>
       </div>
+    </>
+  )}
+</div>
 
       {/* Colonna destra: Gestione e Lista diete */}
       <div className="flex-1">
@@ -674,7 +702,7 @@ const pesoIdeale = selectedPaziente?.altezza
 
         </div>
 {/* Parametri paziente e fabbisogni */}
-<div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2 text-sm shadow-sm">
+<div className={`${modalitaCompatta ? 'p-1 text-xs' : 'p-2 text-sm'} bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm`}>
 <div className="flex flex-wrap justify-between gap-2">
     <div>
       <strong>📏 Altezza:</strong> {selectedPaziente?.altezza || '-'} cm
