@@ -445,7 +445,7 @@ const pesoIdeale = selectedPaziente?.altezza
   };
 
   return (
-    <div className="flex gap-6 p-4">
+    <div className="flex gap-3 p-2">
 {/* Colonna sinistra: Sidebar Totali (intelligente e riducibile) */}
 <div className={`${sidebarCollassata ? 'w-12' : (modalitaCompatta ? 'w-52 p-2' : 'w-64 p-3')} sticky top-4 bg-gray-100 rounded shadow text-xs max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300`}>
   <button
@@ -458,7 +458,7 @@ const pesoIdeale = selectedPaziente?.altezza
 
   {sidebarCollassata ? (
     <div className="flex flex-col items-center text-[10px] text-gray-600">
-      <div className="text-lg">📊</div>
+      <div className="text-sm leading-tight">📊</div>
       <div className="font-bold text-blue-800">{totalSettimana.kcal.toFixed(0)} kcal</div>
       <div className="text-green-600 text-[9px]">{totalSettimana.proteine.toFixed(0)}g P</div>
       <div className="text-yellow-600 text-[9px]">{totalSettimana.grassi.toFixed(0)}g G</div>
@@ -812,7 +812,7 @@ const pesoIdeale = selectedPaziente?.altezza
       <button
         key={index}
         onClick={() => setTabAttivo(index)}
-        className={`whitespace-nowrap px-${modalitaCompatta ? '3' : '4'} py-${modalitaCompatta ? '1' : '2'} rounded-full border text-sm transition-all duration-150 ${
+        className={`whitespace-nowrap px-${modalitaCompatta ? '2' : '3'} py-${modalitaCompatta ? '0.5' : '1.5'} rounded-full border text-sm transition-all duration-150 ${
           tabAttivo === index
             ? 'bg-blue-600 text-white border-blue-600 shadow-md'
             : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
@@ -853,7 +853,7 @@ const pesoIdeale = selectedPaziente?.altezza
 
           {pasti.map((meal, mealIndex) => (
             <div key={mealIndex} className="mb-2">
-<div className={`mt-1 border rounded shadow-sm overflow-hidden ${
+<div className={`mt-0.5 border rounded shadow-sm overflow-hidden ${
   modificaAttiva ? 'border-red-400 ring-2 ring-red-200' : ''
 }`}>
 
@@ -879,7 +879,7 @@ const pesoIdeale = selectedPaziente?.altezza
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="overflow-hidden p-3"
+                      className="overflow-hidden p-2"
                     >
                       <input
                         type="text"
