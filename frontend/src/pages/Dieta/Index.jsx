@@ -702,117 +702,180 @@ const pesoIdeale = selectedPaziente?.altezza
 
         </div>
 {/* Parametri paziente e fabbisogni */}
-<div className="bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm px-2 py-1 text-[11px] leading-tight">
-<div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+{modalitaCompatta ? (
+  <div className="bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm px-2 py-1 text-xs flex flex-wrap justify-between items-center gap-2">
+    <div><strong>📏:</strong> {selectedPaziente?.altezza || '-'} cm</div>
+
     <div>
-      <strong>📏 Altezza:</strong> {selectedPaziente?.altezza || '-'} cm
+      <strong>💪:</strong>{' '}
+      {selectedPaziente?.altezza && peso ? (() => {
+        const bmiVal = peso / Math.pow(selectedPaziente.altezza / 100, 2);
+        const emoji = bmiVal < 18.5 ? '😟' : bmiVal < 25 ? '💪' : bmiVal < 30 ? '⚠️' : '❌';
+        const colore = bmiVal < 18.5 ? 'text-blue-600' : bmiVal < 25 ? 'text-green-600' : bmiVal < 30 ? 'text-yellow-600' : 'text-red-600';
+        return <span className={`${colore} font-bold`}>{bmiVal.toFixed(1)} {emoji}</span>;
+      })() : '-'}
     </div>
-<div className="flex items-center gap-1">
-  <strong>⚖️ Peso:</strong>
-  {modificaPeso ? (
-    <input
-      type="number"
-      className="border px-1 py-0.5 rounded w-20 text-sm"
-      value={peso || ''}
-      onChange={(e) => setPeso(parseFloat(e.target.value))}
-      onBlur={() => setModificaPeso(false)}
-      autoFocus
-    />
-  ) : (
-    <span
-      className="cursor-pointer underline decoration-dotted decoration-1 hover:text-blue-700"
-      title="Clicca per modificare il peso"
-      onClick={() => setModificaPeso(true)}
-    >
-      {peso || visitaCollegata?.peso || '-'} kg ✏️
-    </span>
-  )}
-</div>
 
-<div>
-  <strong>💪 BMI:</strong>{' '}
-  {selectedPaziente?.altezza && peso ? (
-    (() => {
-      const bmiVal = peso / Math.pow(selectedPaziente.altezza / 100, 2);
-      const category =
-        bmiVal < 18.5
-          ? 'Sottopeso'
-          : bmiVal < 25
-          ? 'Normale'
-          : bmiVal < 30
-          ? 'Sovrappeso'
-          : 'Obeso';
-
-      const emoji =
-        bmiVal < 18.5 ? '😟' : bmiVal < 25 ? '💪' : bmiVal < 30 ? '⚠️' : '❌';
-
-      const colore =
-        bmiVal < 18.5
-          ? 'text-blue-600'
-          : bmiVal < 25
-          ? 'text-green-600'
-          : bmiVal < 30
-          ? 'text-yellow-600'
-          : 'text-red-600';
-
-      return (
-        <span className={`${colore} font-bold`} title={`Categoria: ${category}`}>
-          {bmiVal.toFixed(1)} {emoji}
+    <div className="flex items-center gap-1">
+      <strong>⚖️:</strong>
+      {modificaPeso ? (
+        <input
+          type="number"
+          className="border px-1 py-0.5 rounded w-16 text-xs"
+          value={peso || ''}
+          onChange={(e) => setPeso(parseFloat(e.target.value))}
+          onBlur={() => setModificaPeso(false)}
+          autoFocus
+        />
+      ) : (
+        <span
+          className="cursor-pointer underline decoration-dotted decoration-1 hover:text-blue-700"
+          title="Clicca per modificare il peso"
+          onClick={() => setModificaPeso(true)}
+        >
+          {peso || visitaCollegata?.peso || '-'} kg ✏️
         </span>
-      );
-    })()
-  ) : (
-    '-'
-  )}
-</div>
-
-<div>
-  <strong>🎯 Peso ideale:</strong>{' '}
-  {(() => {
-    if (!selectedPaziente?.altezza || !peso) return '-';
-    const pesoIdeale = 22 * Math.pow(selectedPaziente.altezza / 100, 2);
-    const scostamento = peso - pesoIdeale;
-    const scostamentoPercent = (scostamento / pesoIdeale) * 100;
-    let color = 'text-green-700 font-bold';
-    if (Math.abs(scostamentoPercent) > 10) color = 'text-red-600 font-bold';
-    else if (Math.abs(scostamentoPercent) > 5) color = 'text-yellow-600 font-bold';
-
-    return (
-      <span className={color} title={`Scostamento: ${scostamento >= 0 ? '+' : ''}${scostamentoPercent.toFixed(1)}%`}>
-{pesoIdeale.toFixed(1)} kg
-<br />
-<span className="text-xs italic text-gray-600">
-  ({scostamento >= 0 ? '+' : ''}{scostamentoPercent.toFixed(1)}%)
-</span>
-<div className="w-32 h-2 bg-gray-200 rounded mt-1 overflow-hidden">
-  <div
-    className={`h-full ${Math.abs(scostamentoPercent) > 10 ? 'bg-red-500' : Math.abs(scostamentoPercent) > 5 ? 'bg-yellow-400' : 'bg-green-500'}`}
-    style={{
-      width: `${Math.min(Math.abs(scostamentoPercent), 100)}%`,
-      marginLeft: scostamentoPercent < 0 ? `${100 - Math.min(Math.abs(scostamentoPercent), 100)}%` : '0',
-      transition: 'width 0.3s ease'
-    }}
-    title={`Scostamento visivo: ${scostamentoPercent.toFixed(1)}%`}
-  ></div>
-</div>
-      </span>
-    );
-  })()}
-</div>
+      )}
+    </div>
 
     <div>
-      <strong>🔥 Fabb. giornaliero:</strong> {fabbisogni?.fabbisogno_calorico || 0} kcal
+      <strong>🎯:</strong>{' '}
+      {(() => {
+        if (!selectedPaziente?.altezza || !peso) return '-';
+        const pesoIdeale = 22 * Math.pow(selectedPaziente.altezza / 100, 2);
+        const scostamento = peso - pesoIdeale;
+        const scostamentoPercent = (scostamento / pesoIdeale) * 100;
+        let color = 'text-green-700 font-bold';
+        if (Math.abs(scostamentoPercent) > 10) color = 'text-red-600 font-bold';
+        else if (Math.abs(scostamentoPercent) > 5) color = 'text-yellow-600 font-bold';
+
+        return (
+          <span className={color}>
+            {pesoIdeale.toFixed(1)} kg
+            <span className="text-xs text-gray-500"> ({scostamento >= 0 ? '+' : ''}{scostamentoPercent.toFixed(1)}%)</span>
+            <div className="w-20 h-1 bg-gray-200 rounded mt-1 overflow-hidden">
+              <div
+                className={`h-full ${Math.abs(scostamentoPercent) > 10 ? 'bg-red-500' : Math.abs(scostamentoPercent) > 5 ? 'bg-yellow-400' : 'bg-green-500'}`}
+                style={{
+                  width: `${Math.min(Math.abs(scostamentoPercent), 100)}%`,
+                  marginLeft: scostamentoPercent < 0 ? `${100 - Math.min(Math.abs(scostamentoPercent), 100)}%` : '0',
+                  transition: 'width 0.3s ease'
+                }}
+              ></div>
+            </div>
+          </span>
+        );
+      })()}
     </div>
   </div>
-</div>
+) : (
+  <div className="bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm px-4 py-2 text-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-6">
+
+      {/* COLONNA SINISTRA */}
+      <div className="space-y-1">
+        <div>
+          <span className="font-semibold">📏 Altezza:</span>{' '}
+          <span className="text-gray-800">{selectedPaziente?.altezza || '-'}</span>
+          <span className="text-gray-400"> cm</span>
+        </div>
+
+        <div>
+          <span className="font-semibold">💪 BMI:</span>{' '}
+          {selectedPaziente?.altezza && peso ? (() => {
+            const bmiVal = peso / Math.pow(selectedPaziente.altezza / 100, 2);
+            const emoji = bmiVal < 18.5 ? '😟' : bmiVal < 25 ? '💪' : bmiVal < 30 ? '⚠️' : '❌';
+            const colore = bmiVal < 18.5 ? 'text-blue-600' : bmiVal < 25 ? 'text-green-600' : bmiVal < 30 ? 'text-yellow-600' : 'text-red-600';
+            return <span className={`${colore} font-bold`}>{bmiVal.toFixed(1)} {emoji}</span>;
+          })() : '-'}
+        </div>
+
+        <div>
+          <span className="font-semibold">🔥 Fabb. giornaliero:</span>{' '}
+          <span className="text-gray-800">{fabbisogni?.fabbisogno_calorico || 0}</span>
+          <span className="text-gray-400"> kcal</span>
+        </div>
+      </div>
+
+      {/* COLONNA DESTRA */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-1">
+          <span className="font-semibold">⚖️ Peso:</span>
+          {modificaPeso ? (
+            <input
+              type="number"
+              className="border px-1 py-0.5 rounded w-20 text-sm"
+              value={peso || ''}
+              onChange={(e) => setPeso(parseFloat(e.target.value))}
+              onBlur={() => setModificaPeso(false)}
+              autoFocus
+            />
+          ) : (
+            <span
+              className="cursor-pointer underline decoration-dotted decoration-1 hover:text-blue-700"
+              title="Clicca per modificare il peso"
+              onClick={() => setModificaPeso(true)}
+            >
+              {peso || visitaCollegata?.peso || '-'}
+              <span className="text-gray-400"> kg</span> ✏️
+            </span>
+          )}
+        </div>
+
+        <div>
+          <span className="font-semibold">🎯 Peso ideale:</span>{' '}
+          {(() => {
+            if (!selectedPaziente?.altezza || !peso) return '-';
+            const pesoIdeale = 22 * Math.pow(selectedPaziente.altezza / 100, 2);
+            const scostamento = peso - pesoIdeale;
+            const scostamentoPercent = (scostamento / pesoIdeale) * 100;
+            let color = 'text-green-700 font-bold';
+            if (Math.abs(scostamentoPercent) > 10) color = 'text-red-600 font-bold';
+            else if (Math.abs(scostamentoPercent) > 5) color = 'text-yellow-600 font-bold';
+
+            return (
+              <span className={color}>
+                {pesoIdeale.toFixed(1)} <span className="text-gray-400">kg</span>
+                <br />
+                <span className="text-xs italic text-gray-600">
+                  ({scostamento >= 0 ? '+' : ''}{scostamentoPercent.toFixed(1)}<span className="text-gray-400">%</span>)
+                </span>
+                <div className="w-32 h-2 bg-gray-200 rounded mt-1 overflow-hidden">
+                  <div
+                    className={`h-full ${
+                      Math.abs(scostamentoPercent) > 10
+                        ? 'bg-red-500'
+                        : Math.abs(scostamentoPercent) > 5
+                        ? 'bg-yellow-400'
+                        : 'bg-green-500'
+                    }`}
+                    style={{
+                      width: `${Math.min(Math.abs(scostamentoPercent), 100)}%`,
+                      marginLeft: scostamentoPercent < 0 ? `${100 - Math.min(Math.abs(scostamentoPercent), 100)}%` : '0',
+                      transition: 'width 0.3s ease',
+                    }}
+                    title={`Scostamento visivo: ${scostamentoPercent.toFixed(1)}%`}
+                  ></div>
+                </div>
+              </span>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
 {/* Grid Layout per giorni, pasti e alimenti */}
-<div className="mb-2 flex justify-between items-center px-2">
+<div className="mb-1 flex justify-between items-center px-1 py-1 text-xs">
   <div className="flex gap-2 overflow-x-auto">
     {giorniDefault.map((dayLabel, index) => (
       <button
         key={index}
         onClick={() => setTabAttivo(index)}
-        className={`whitespace-nowrap px-${modalitaCompatta ? '2' : '3'} py-${modalitaCompatta ? '0.5' : '1.5'} rounded-full border text-sm transition-all duration-150 ${
+        className={`whitespace-nowrap px-${modalitaCompatta ? '1.5' : '2'} py-${modalitaCompatta ? '0.5' : '1'} rounded-full border text-sm transition-all duration-150 ${
           tabAttivo === index
             ? 'bg-blue-600 text-white border-blue-600 shadow-md'
             : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-100'
@@ -827,7 +890,24 @@ const pesoIdeale = selectedPaziente?.altezza
     <input
       type="checkbox"
       checked={modalitaCompatta}
-      onChange={() => setModalitaCompatta(prev => !prev)}
+onChange={() => {
+  const nuovaCompatta = !modalitaCompatta;
+  setModalitaCompatta(nuovaCompatta);
+  localStorage.setItem('modalitaCompatta', nuovaCompatta);
+
+  if (nuovaCompatta) {
+    setSidebarCollassata(true); // Chiude la sidebar
+    setOpenMeals(giorniDefault.map(() => pasti.map(() => false))); // Chiude tutto
+    setShowDieteSalvate(false); // Nasconde diete
+  } else {
+    setSidebarCollassata(false); // Riapre sidebar
+
+    // Riapre solo la colazione per ogni giorno (modificabile)
+    const nuovoStato = giorniDefault.map(() => pasti.map(p => p === 'Colazione'));
+    setOpenMeals(nuovoStato);
+  }
+}}
+
     />
     <label>Modalità compatta</label>
   </div>
@@ -853,23 +933,32 @@ const pesoIdeale = selectedPaziente?.altezza
 
           {pasti.map((meal, mealIndex) => (
             <div key={mealIndex} className="mb-2">
-<div className={`mt-0.5 border rounded shadow-sm overflow-hidden ${
-  modificaAttiva ? 'border-red-400 ring-2 ring-red-200' : ''
-}`}>
+<div className={`mt-1 border rounded-md shadow-sm bg-white ${
+  modificaAttiva ? 'border-red-400 ring-2 ring-red-200' : 'border-gray-200'
+}`} style={{ overflow: 'visible' }}>
 
-                <button
-                  onClick={() => {
-                    const updated = [...openMeals];
-                    updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
-                    setOpenMeals(updated);
-                  }}
-                  className={`w-full text-left px-3 py-2 font-medium text-sm flex justify-between items-center ${
-                    openMeals[dayIndex][mealIndex] ? 'bg-blue-100' : 'bg-gray-100'
-                  }`}
-                >
-                  {meal}
-                  <span className="text-xs">{openMeals[dayIndex][mealIndex] ? '▲' : '▼'}</span>
-                </button>
+
+<button
+  onClick={() => {
+    const updated = [...openMeals];
+    updated[dayIndex][mealIndex] = !updated[dayIndex][mealIndex];
+    setOpenMeals(updated);
+  }}
+  className={`w-full text-left font-semibold text-[13px] flex justify-between items-center transition-all duration-150 ${
+    openMeals[dayIndex][mealIndex] ? 'bg-blue-100' : 'bg-gray-100'
+  }`}
+  style={{
+    padding: '0.75rem 1rem',
+    minHeight: '2.5rem',
+    overflow: 'visible',
+    borderTopLeftRadius: '0.5rem',
+    borderTopRightRadius: '0.5rem',
+  }}
+>
+<span className="whitespace-normal break-words">{meal}</span>
+  <span className="text-[10px] ml-2">{openMeals[dayIndex][mealIndex] ? '▲' : '▼'}</span>
+</button>
+
 
                 <AnimatePresence initial={false}>
                   {openMeals[dayIndex][mealIndex] && (
@@ -893,66 +982,78 @@ const pesoIdeale = selectedPaziente?.altezza
                         }}
                         autoComplete="off"
                       />
-                      <table className="w-full text-[11px] my-1 border-separate border-spacing-y-1">
-<thead className="text-[11px] text-left text-gray-600">
-  <tr>
-    <th className="w-1/2 pl-2">Nome</th>
-    <th className="w-1/6 text-center">Kcal</th>
-    <th className="w-1/6 text-center">Gr</th>
-    <th className="w-1/6 text-right pr-2">Aggiungi</th>
-  </tr>
-</thead>
-                        <tbody>
-                          {foods
-                            .filter(f =>
-                              f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
-                            )
-                            .slice(0, 3)
-                            .map(food => (
-<tr key={food.id} className="align-middle hover:bg-gray-50 transition">
-  <td className="pl-2">{food.nome}</td>
-  <td className="text-center">{food.energia_kcal}</td>
-  <td className="text-center">
-    <input
-      type="number"
-      className="border px-1 py-0.5 w-14 text-[10px] text-center"
-      placeholder="gr"
-      defaultValue="100"
-      onChange={(e) => {
-        const quantitaVal = parseFloat(e.target.value) || 100;
-        setGramInput(prev => ({
-          ...prev,
-          [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
-        }));
-      }}
-    />
-  </td>
-  <td className="text-right pr-2">
-    <button
-      onClick={() => handleAddFood(dayIndex, mealIndex, food)}
-      className="bg-green-500 text-white px-2 py-1 rounded text-xs"
-    >
-      +
-    </button>
-  </td>
-</tr>
+<table className="w-full text-sm my-3 table-fixed border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+  <thead className="bg-gray-100 text-gray-700">
+    <tr className="text-xs uppercase tracking-wide text-left">
+      <th className="px-3 py-2 w-1/2">🍽 Nome alimento</th>
+      <th className="px-2 py-2 text-center w-1/6">Kcal</th>
+      <th className="px-2 py-2 text-center w-1/6">Gr</th>
+      <th className="px-2 py-2 text-center w-1/6">Aggiungi</th>
+    </tr>
+  </thead>
+  <tbody className="text-sm divide-y divide-gray-100 bg-white">
+    {foods
+      .filter(f =>
+        f.nome.toLowerCase().includes(searchValues[dayIndex][mealIndex].toLowerCase())
+      )
+      .slice(0, 5)
+      .map(food => (
+        <tr key={food.id} className="hover:bg-blue-50 transition-all duration-100">
+          <td className="px-3 py-2 text-gray-900">{food.nome}</td>
+          <td className="text-center text-gray-700">{food.energia_kcal}</td>
+          <td className="text-center">
+            <input
+              type="number"
+              className="border border-gray-300 px-2 py-1 rounded-md w-16 text-sm text-center focus:outline-none focus:ring focus:ring-blue-200"
+              placeholder="gr"
+              defaultValue="100"
+              onChange={(e) => {
+                const quantitaVal = parseFloat(e.target.value) || 100;
+                setGramInput(prev => ({
+                  ...prev,
+                  [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
+                }));
+              }}
+            />
+          </td>
+          <td className="text-center">
+            <button
+              onClick={() => handleAddFood(dayIndex, mealIndex, food)}
+              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow text-sm transition"
+              title="Aggiungi alimento"
+            >
+              +
+            </button>
+          </td>
+        </tr>
+      ))}
+  </tbody>
+</table>
 
-                            ))}
-                        </tbody>
-                      </table>
-                      <ul className="text-[11px] list-disc pl-3 space-y-0.5 mt-1">
-                        {dieta[dayIndex][mealIndex].map((food, idx) => (
-                          <li key={idx}>
-                            {food.nome} – {food.quantita || 100} g
-                            <button
-                              onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
-                              className="ml-2 text-red-500"
-                            >
-                              ✕
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+
+<div className="flex flex-wrap gap-2 mt-3">
+  {dieta[dayIndex][mealIndex].map((food, idx) => (
+    <div
+      key={idx}
+      className="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 text-sm px-3 py-1.5 rounded-full shadow-sm hover:bg-blue-100 transition-all"
+    >
+      <div className="flex flex-col leading-tight">
+        <span className="font-semibold text-gray-800">{food.nome}</span>
+        <span className="text-gray-600 text-[11px]">{food.quantita || 100}g – {food.energia_kcal} kcal</span>
+      </div>
+      <button
+        onClick={() => handleRemoveFood(dayIndex, mealIndex, idx)}
+        className="text-red-500 hover:text-red-700 text-xs font-bold"
+        title="Rimuovi alimento"
+      >
+        ✕
+      </button>
+    </div>
+  ))}
+</div>
+
+
+
                     </motion.div>
                   )}
                 </AnimatePresence>
