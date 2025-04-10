@@ -445,7 +445,7 @@ const pesoIdeale = selectedPaziente?.altezza
   };
 
   return (
-    <div className="flex gap-3 p-2">
+    <div className="flex gap-2 px-2 md:px-4 py-2">
 {/* Colonna sinistra: Sidebar Totali (intelligente e riducibile) */}
 <div className={`${sidebarCollassata ? 'w-12' : (modalitaCompatta ? 'w-52 p-2' : 'w-64 p-3')} sticky top-4 bg-gray-100 rounded shadow text-xs max-h-[calc(100vh-2rem)] overflow-y-auto transition-all duration-300`}>
   <button
@@ -702,8 +702,8 @@ const pesoIdeale = selectedPaziente?.altezza
 
         </div>
 {/* Parametri paziente e fabbisogni */}
-<div className={`${modalitaCompatta ? 'p-1 text-xs' : 'p-2 text-sm'} bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm`}>
-<div className="flex flex-wrap justify-between gap-2">
+<div className="bg-blue-50 border border-blue-200 rounded mb-2 shadow-sm px-2 py-1 text-[11px] leading-tight">
+<div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
     <div>
       <strong>📏 Altezza:</strong> {selectedPaziente?.altezza || '-'} cm
     </div>
@@ -879,7 +879,7 @@ const pesoIdeale = selectedPaziente?.altezza
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="overflow-hidden p-2"
+                      className="overflow-hidden px-2 pb-2 pt-1"
                     >
                       <input
                         type="text"
@@ -893,15 +893,15 @@ const pesoIdeale = selectedPaziente?.altezza
                         }}
                         autoComplete="off"
                       />
-                      <table className="w-full text-xs my-2">
-                        <thead>
-                          <tr>
-                            <th>Nome</th>
-                            <th>Kcal</th>
-                            <th>Gr</th>
-                            <th></th>
-                          </tr>
-                        </thead>
+                      <table className="w-full text-[11px] my-1 border-separate border-spacing-y-1">
+<thead className="text-[11px] text-left text-gray-600">
+  <tr>
+    <th className="w-1/2 pl-2">Nome</th>
+    <th className="w-1/6 text-center">Kcal</th>
+    <th className="w-1/6 text-center">Gr</th>
+    <th className="w-1/6 text-right pr-2">Aggiungi</th>
+  </tr>
+</thead>
                         <tbody>
                           {foods
                             .filter(f =>
@@ -909,37 +909,38 @@ const pesoIdeale = selectedPaziente?.altezza
                             )
                             .slice(0, 3)
                             .map(food => (
-                              <tr key={food.id}>
-                                <td>{food.nome}</td>
-                                <td>{food.energia_kcal}</td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    className="border p-1 w-16 text-xs"
-                                    placeholder="gr"
-                                    defaultValue="100"
-                                    onChange={(e) => {
-                                      const quantitaVal = parseFloat(e.target.value) || 100;
-                                      setGramInput(prev => ({
-                                        ...prev,
-                                        [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
-                                      }));
-                                    }}
-                                  />
-                                </td>
-                                <td>
-                                  <button
-                                    onClick={() => handleAddFood(dayIndex, mealIndex, food)}
-                                    className="bg-green-500 text-white px-2 py-1 rounded text-xs"
-                                  >
-                                    +
-                                  </button>
-                                </td>
-                              </tr>
+<tr key={food.id} className="align-middle hover:bg-gray-50 transition">
+  <td className="pl-2">{food.nome}</td>
+  <td className="text-center">{food.energia_kcal}</td>
+  <td className="text-center">
+    <input
+      type="number"
+      className="border px-1 py-0.5 w-14 text-[10px] text-center"
+      placeholder="gr"
+      defaultValue="100"
+      onChange={(e) => {
+        const quantitaVal = parseFloat(e.target.value) || 100;
+        setGramInput(prev => ({
+          ...prev,
+          [`${dayIndex}-${mealIndex}-${food.id}`]: quantitaVal
+        }));
+      }}
+    />
+  </td>
+  <td className="text-right pr-2">
+    <button
+      onClick={() => handleAddFood(dayIndex, mealIndex, food)}
+      className="bg-green-500 text-white px-2 py-1 rounded text-xs"
+    >
+      +
+    </button>
+  </td>
+</tr>
+
                             ))}
                         </tbody>
                       </table>
-                      <ul className="text-xs list-disc pl-4">
+                      <ul className="text-[11px] list-disc pl-3 space-y-0.5 mt-1">
                         {dieta[dayIndex][mealIndex].map((food, idx) => (
                           <li key={idx}>
                             {food.nome} – {food.quantita || 100} g
