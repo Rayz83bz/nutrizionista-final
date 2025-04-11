@@ -1,0 +1,113 @@
+🔹 1. Campi informativi (12)
+code                           → code                     → Codice prodotto
+product_name                   → nome_prodotto            → Nome
+generic_name                   → nome_generico            → Nome generico
+brands                         → marca                    → Marchio
+categories                     → categorie                → Categorie
+main_category                  → categoria_principale     → Categoria principale
+quantity                       → quantita                 → Quantità
+serving_size                   → porzione                 → Porzione
+nutrition_grade_fr             → nutriscore               → Nutri-Score
+image_url                      → immagine                 → URL immagine
+last_modified_t                → ultima_modifica          → Ultima modifica
+countries_tags                 → paesi                    → Paesi disponibili
+
+🔹 2. Energia + Macronutrienti
+energy_100g                    → energia                  → Energia (kcal)
+energy-kj_100g                 → energia_kj               → Energia (kJ)
+energy-kcal_100g               → kcal                     → Calorie (kcal)
+proteins_100g                  → proteine                 → Proteine (g)
+casein_100g                    → caseina                  → Caseina (g)
+serum-proteins_100g            → proteine_siero           → Proteine del siero (g)
+nucleotides_100g               → nucleotidi               → Nucleotidi (g)
+carbohydrates_100g             → carboidrati              → Carboidrati (g)
+sugars_100g                    → zuccheri                 → Zuccheri (g)
+sucrose_100g                   → saccarosio               → Saccarosio (g)
+glucose_100g                   → glucosio                 → Glucosio (g)
+fructose_100g                  → fruttosio                → Fruttosio (g)
+lactose_100g                   → lattosio                 → Lattosio (g)
+maltose_100g                   → maltosio                 → Maltosio (g)
+maltodextrins_100g             → maltodestrine            → Maltodestrine (g)
+starch_100g                    → amido                    → Amido (g)
+polyols_100g                   → polioli                  → Polioli (g)
+fat_100g                       → grassi                   → Grassi (g)
+saturated-fat_100g             → grassi_saturi            → Grassi saturi (g)
+trans-fat_100g                 → grassi_trans             → Grassi trans (g)
+cholesterol_100g               → colesterolo              → Colesterolo (mg)
+fiber_100g                     → fibra                    → Fibra alimentare (g)
+sodium_100g                    → sodio                    → Sodio (mg)
+alcohol_100g                   → alcol                    → Alcol (g)
+
+🔹 3. Acidi grassi dettagliati (saturi, insaturi, omega, ecc.)
+butyric-acid_100g              → acido_butirrico          → Acido butirrico (g)
+caproic-acid_100g              → acido_caproico           → Acido caproico (g)
+caprylic-acid_100g             → acido_caprilico          → Acido caprilico (g)
+capric-acid_100g               → acido_caprico            → Acido caprico (g)
+lauric-acid_100g               → acido_laurico            → Acido laurico (g)
+myristic-acid_100g             → acido_miristico          → Acido miristico (g)
+palmitic-acid_100g             → acido_palmitico          → Acido palmitico (g)
+stearic-acid_100g              → acido_stearico           → Acido stearico (g)
+arachidic-acid_100g            → acido_arachidico         → Acido arachidico (g)
+behenic-acid_100g              → acido_beenico            → Acido beenico (g)
+lignoceric-acid_100g           → acido_lignocerico        → Acido lignocerico (g)
+cerotic-acid_100g              → acido_cerotico           → Acido cerotico (g)
+montanic-acid_100g             → acido_montanico          → Acido montanico (g)
+melissic-acid_100g             → acido_melissico          → Acido melissico (g)
+monounsaturated-fat_100g       → grassi_monoinsaturi      → Grassi monoinsaturi (g)
+polyunsaturated-fat_100g       → grassi_polinsaturi       → Grassi polinsaturi (g)
+omega-3-fat_100g               → omega_3                  → Grassi Omega-3 (g)
+alpha-linolenic-acid_100g      → acido_alpha_linolenico   → Acido α-linolenico (g)
+eicosapentaenoic-acid_100g     → EPA                      → EPA (g)
+docosahexaenoic-acid_100g      → DHA                      → DHA (g)
+omega-6-fat_100g               → omega_6                  → Grassi Omega-6 (g)
+linoleic-acid_100g             → acido_linoleico          → Acido linoleico (g)
+arachidonic-acid_100g          → acido_arachidonico       → Acido arachidonico (g)
+gamma-linolenic-acid_100g      → acido_gamma_linolenico   → Acido γ-linolenico (g)
+dihomo-gamma-linolenic-acid_100g → acido_dihomo_gamma_linolenico → Acido dihomo-γ-linolenico (g)
+omega-9-fat_100g               → omega_9                  → Grassi Omega-9 (g)
+oleic-acid_100g                → acido_oleico             → Acido oleico (g)
+elaidic-acid_100g              → acido_elaidico           → Acido elaidico (g)
+gondoic-acid_100g              → acido_gondoico           → Acido gondoico (g)
+mead-acid_100g                 → acido_meadico            → Acido meadico (g)
+erucic-acid_100g               → acido_erucico            → Acido erucico (g)
+nervonic-acid_100g             → acido_nervonico          → Acido nervonico (g)
+
+🔹 4. Vitamine
+vitamin-a_100g                 → vitamina_a               → Vitamina A (µg)
+vitamin-d_100g                 → vitamina_d               → Vitamina D (µg)
+vitamin-e_100g                 → vitamina_e               → Vitamina E (mg)
+vitamin-k_100g                 → vitamina_k               → Vitamina K (µg)
+vitamin-c_100g                 → vitamina_c               → Vitamina C (mg)
+vitamin-b1_100g                → vitamina_b1              → Vitamina B1 (mg)
+vitamin-b2_100g                → vitamina_b2              → Vitamina B2 (mg)
+vitamin-pp_100g                → niacina                  → Niacina (mg)
+vitamin-b6_100g                → vitamina_b6              → Vitamina B6 (mg)
+vitamin-b9_100g                → vitamina_b9              → Folati (µg)
+vitamin-b12_100g               → vitamina_b12             → Vitamina B12 (µg)
+biotin_100g                    → biotina                  → Biotina (µg)
+pantothenic-acid_100g          → acido_pantotenico        → Acido pantotenico (mg)
+
+🔹 5. Minerali + altri composti
+silica_100g                    → silice                   → Silice (mg)
+bicarbonate_100g               → bicarbonato              → Bicarbonato (mg)
+potassium_100g                 → potassio                 → Potassio (mg)
+chloride_100g                  → cloruro                  → Cloruro (mg)
+calcium_100g                   → calcio                   → Calcio (mg)
+phosphorus_100g                → fosforo                  → Fosforo (mg)
+iron_100g                      → ferro                    → Ferro (mg)
+magnesium_100g                 → magnesio                 → Magnesio (mg)
+zinc_100g                      → zinco                    → Zinco (mg)
+copper_100g                    → rame                     → Rame (mg)
+manganese_100g                 → manganese                → Manganese (mg)
+fluoride_100g                  → fluoro                   → Fluoro (mg)
+selenium_100g                  → selenio                  → Selenio (µg)
+chromium_100g                  → cromo                    → Cromo (µg)
+molybdenum_100g                → molibdeno                → Molibdeno (µg)
+iodine_100g                    → iodio                    → Iodio (µg)
+
+🔹 6. Altri indicatori
+caffeine_100g                  → caffeina                 → Caffeina (mg)
+taurine_100g                   → taurina                  → Taurina (mg)
+ph_100g                        → ph                       → pH
+carbon-footprint_100g         → impronta_carbonio        → Impronta di CO₂ (g)
+fruits-vegetables-nuts_100g   → frutta_verdura_noci      → % Frutta/Verdura/Noci (escluso patate)
